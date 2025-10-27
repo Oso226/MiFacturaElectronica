@@ -1,4 +1,19 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+class Perfil(models.Model):
+    ROLES = [
+        ('Administrador', 'Administrador'),
+        ('Contador', 'Contador'),
+        ('Empleado', 'Empleado'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    rol = models.CharField(max_length=50, choices=ROLES)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.rol}"
 
 # ======================================================
 # MODELO EMPRESA

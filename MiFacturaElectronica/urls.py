@@ -19,12 +19,8 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
-    # ✅ Usa las rutas de tu aplicación principal
-    path('', include('Modulos.Facturacion.urls')),
-
-    # ✅ Activa las rutas de autenticación (login/logout)
-    path('accounts/', include('django.contrib.auth.urls')),
+    path('', include('Modulos.Facturacion.urls')),  # ✅ carga tus rutas personalizadas
 ]
+
 
 

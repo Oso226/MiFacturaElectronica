@@ -1,18 +1,57 @@
 from django.shortcuts import render
-
-# Create your views here.
-
+from django.contrib.auth.models import User
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login
 from .models import DTE 
 from django.shortcuts import redirect
+from .models import Perfil
+from django.contrib.auth import logout
+from .models import DTE, Perfil
 
-def redireccion_inicio(request):
+def iniciar_sesion(request):
     if request.user.is_authenticated:
-        # 👇 Si el usuario ya inició sesión, lo enviamos a la lista de DTE
         return redirect('lista_dte')
-    else:
-        # 👇 Si no está autenticado, lo enviamos al login
-        return redirect('login')
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, "Inicio de sesión exitoso.")
+            return redirect('lista_dte')
+        else:
+            messages.error(request, "Usuario o contraseña incorrectos.")
+
+    return render(request, 'registration/login.html')
+    
+def cerrar_sesion(request):
+    logout(request)
+    return redirect('login')
+    
+def registro(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password1')
+        rol = request.POST.get('rol')
+
+        # Verifica si ya existe el usuario
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "El nombre de usuario ya existe.")
+        else:
+            # Crea el usuario
+            user = User.objects.create_user(username=username, password=password)
+            user.save()
+
+            # Crea el perfil asociado
+            Perfil.objects.create(user=user, rol=rol)
+
+            messages.success(request, f"Usuario '{username}' registrado exitosamente como {rol}.")
+            return redirect('login')
+
+    return render(request, 'registration/registro.html')
 
 
 @login_required

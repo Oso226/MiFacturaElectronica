@@ -1,7 +1,10 @@
 from django.contrib import admin
-
-# Register your models here.
 from .models import Empresa, Cliente, Producto, DTE, DetalleDTE
+from .models import Perfil
+
+@admin.register(Perfil)
+class PerfilAdmin(admin.ModelAdmin):
+    list_display = ('user', 'rol', 'fecha_registro')
 
 admin.site.register(Empresa)
 admin.site.register(Cliente)
