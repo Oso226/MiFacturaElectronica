@@ -1,1 +1,61 @@
- 
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear DTE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2086bc;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+        }
+        
+        div > div {
+            margin: 10px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        .container{
+            display: flex;
+            justify-content: center;
+        }
+        
+        a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <H1>TIPOS DE DTE</H1>
+    <div class="container">
+        <div><a href="{% url 'crear_dte_tipo' 'factura01' %}" class="btn-dte">Factura 01</a></div>
+        <div><a href="{% url 'crear_dte_tipo' 'ccf03' %}">Comprobante de Crédito Fiscal 03</a></div>
+        <div><a href="{% url 'crear_dte_tipo' 'notaCredito05' %}">Nota de crédito 05</a></div>
+        <div><a href="{% url 'crear_dte_tipo' 'notaDebito06' %}">Nota de debito 06</a></div>
+        <div><a href="{% url 'crear_dte_tipo' 'retencion07' %}">Comprobante de retención 07</a></div>
+        <div><a href="{% url 'crear_dte_tipo' 'liquidacion11' %}">Comprobante de liquidación 11</a></div>
+    </div>
+
+    {% if tipo_dte == 'factura01' %}
+        {% include 'forms/factura01.html' %}
+    {% elif tipo_dte == 'ccf03' %}
+        {% include 'forms/ccf03.html' %}
+    {% elif tipo_dte == 'notaCredito05' %}
+        {% include 'forms/notaCredito05.html' %}
+    {% elif tipo_dte == 'notaDebito06' %}
+        {% include 'forms/notaDebito06.html' %}
+    {% elif tipo_dte == 'retencion07' %}
+        {% include 'forms/retencion07.html' %}
+    {% elif tipo_dte == 'liquidacion11' %}
+        {% include 'forms/liquidacion11.html' %}
+    {% endif %}
+</body>
+</html>

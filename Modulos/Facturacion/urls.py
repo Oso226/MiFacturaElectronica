@@ -8,5 +8,7 @@ urlpatterns = [
     path('registro/', views.registro, name='registro'),
     path('lista/', views.lista_dte, name='lista_dte'),
     path('crear/', views.crear_dte, name='crear_dte'),
+    path('crear-dte/', views.crear_dte, name='crear_dte'),
+    path('crear-dte/<str:tipo_dte>/', views.crear_dte, name='crear_dte_tipo'),
 ]
 

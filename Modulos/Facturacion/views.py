@@ -61,7 +61,11 @@ def lista_dte(request):
 
 # 👇 Crea un nuevo DTE (por ahora vista vacía)
 @login_required
-def crear_dte(request):
-    return render(request, 'Facturacion/crear_dte.html')
+#def crear_dte(request):
+    #return render(request, 'Facturacion/crear_dte.html')
 
-
+def crear_dte(request, tipo_dte=None):
+    context = {
+        'tipo_dte': tipo_dte
+    }
+    return render(request, 'Facturacion/crear_dte.html', context)

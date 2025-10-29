@@ -1,13 +1,21 @@
 <div class="form-container">
     <style>
+    :root {
+        --black: #000000;
+        --blue-ncs: #1C82BE;
+        --turquoise: #27E5D8;
+        --ghost-white: #E9E9EF;
+        --air-superiority-blue: #69A9C5;
+    }
+
     .form-container {
-        max-width: 850px;
+        max-width: 800px;
         margin: 40px auto;
         background: white;
         padding: 45px;
         border-radius: 15px;
         box-shadow: 0 10px 40px rgba(28, 130, 190, 0.2);
-        border-left: 6px solid #1C82BE;
+        border-left: 6px solid var(--blue-ncs);
         animation: fadeIn 0.6s ease;
     }
 
@@ -23,12 +31,12 @@
     }
 
     .form-container h2 {
-        color: #1C82BE;
+        color: var(--blue-ncs);
         font-size: 2.2em;
         margin-bottom: 30px;
         text-align: center;
         padding-bottom: 15px;
-        border-bottom: 3px solid #1C82BE;
+        border-bottom: 3px solid var(--blue-ncs);
         text-transform: uppercase;
         letter-spacing: 1.5px;
         font-weight: 800;
@@ -40,7 +48,7 @@
 
     .form-group label {
         display: block;
-        color: #000000;
+        color: var(--black);
         font-weight: 600;
         margin-bottom: 8px;
         font-size: 1em;
@@ -51,7 +59,7 @@
     .form-group textarea {
         width: 100%;
         padding: 14px 16px;
-        border: 2px solid #E9E9EF;
+        border: 2px solid var(--ghost-white);
         border-radius: 8px;
         font-size: 1em;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,7 +71,7 @@
     .form-group select:focus,
     .form-group textarea:focus {
         outline: none;
-        border-color: #1C82BE;
+        border-color: var(--blue-ncs);
         background-color: white;
         box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.1);
         transform: translateY(-2px);
@@ -105,43 +113,28 @@
         margin: 0;
     }
 
-    .form-group input[type="tel"],
-    .form-group input[type="email"] {
-        font-family: inherit;
+    .form-group input[type="date"] {
+        cursor: pointer;
     }
 
-    .form-group input[name="precio_unitario"],
-    .form-group input[name="monto_operacion"] {
+    .form-group input[name="monto_acreditar"] {
         font-size: 1.2em;
         font-weight: 700;
-        color: #1C82BE;
+        color: var(--blue-ncs);
         background-color: #f0f9ff;
-        border-color: #69A9C5;
+        border-color: var(--air-superiority-blue);
     }
 
-    .form-group input[name="precio_unitario"]:focus,
-    .form-group input[name="monto_operacion"]:focus {
+    .form-group input[name="monto_acreditar"]:focus {
         background-color: white;
-        border-color: #1C82BE;
+        border-color: var(--blue-ncs);
         box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.15);
-    }
-
-    .form-group input[name="descuento"] {
-        font-weight: 600;
-        color: #dc3545;
-        background-color: #fff5f5;
-    }
-
-    .form-group input[name="descuento"]:focus {
-        border-color: #1C82BE;
-        background-color: white;
-        box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.1);
     }
 
     .form-group input:valid:not(:placeholder-shown),
     .form-group textarea:valid:not(:placeholder-shown),
     .form-group select:valid {
-        border-color: #27E5D8;
+        border-color: var(--turquoise);
         background-color: #f0fffd;
     }
 
@@ -153,7 +146,7 @@
 
     .btn-submit {
         width: 100%;
-        background: linear-gradient(135deg, #1C82BE 0%, #156a9a 100%);
+        background: linear-gradient(135deg, var(--blue-ncs) 0%, #156a9a 100%);
         color: white;
         border: none;
         padding: 18px 30px;
@@ -182,7 +175,7 @@
     .form-group input:hover:not(:focus),
     .form-group select:hover:not(:focus),
     .form-group textarea:hover:not(:focus) {
-        border-color: #69A9C5;
+        border-color: var(--air-superiority-blue);
     }
 
     @media (max-width: 768px) {
@@ -229,80 +222,52 @@
         }
     }
 </style>
-    <h2>Documento Contable de Liquidación 11</h2>
-    <form method="POST" action="{% url 'crear_dte_tipo' 'liquidacion11' %}">
+    <h2>Nota de Crédito 05</h2>
+    <form method="POST" action="{% url 'crear_dte_tipo' 'notaCredito05' %}">
         {% csrf_token %}
         
         <div class="form-group">
-            <label>Proveedor (Nombre o Razón Social):</label>
-            <input type="text" name="proveedor" placeholder="Nombre del proveedor" required>
-        </div>
-
-        <div class="form-group">
-            <label>Tipo de documento del proveedor:</label>
+            <label>Tipo de documento a anular:</label>
             <select name="tipo_documento" required>
-                <option value="">Seleccione</option>
-                <option value="36">NIT</option>
-                <option value="13">DUI</option>
-                <option value="37">Pasaporte</option>
-                <option value="03">Otro</option>
+                <option value="">Seleccione tipo de documento</option>
+                <option value="01">Factura 01</option>
+                <option value="03">Comprobante de Crédito Fiscal 03</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Número de documento:</label>
-            <input type="text" name="numero_documento" placeholder="0000-000000-000-0" required>
+            <label>Número de control del documento:</label>
+            <input type="text" name="numero_control" placeholder="DTE-01-00000001-000000000000001" required>
         </div>
 
         <div class="form-group">
-            <label>NRC (si aplica):</label>
-            <input type="text" name="nrc" placeholder="000000-0">
+            <label>Código de generación del documento:</label>
+            <input type="text" name="codigo_generacion" placeholder="XXXX-XXXX-XXXX-XXXX" required>
         </div>
 
         <div class="form-group">
-            <label>Teléfono:</label>
-            <input type="tel" name="telefono" placeholder="0000-0000">
+            <label>Fecha del documento original:</label>
+            <input type="date" name="fecha_documento" required>
         </div>
 
         <div class="form-group">
-            <label>Correo electrónico:</label>
-            <input type="email" name="correo" placeholder="proveedor@email.com">
+            <label>Motivo de anulación:</label>
+            <textarea name="motivo" rows="4" placeholder="Razón de la anulación o devolución" required></textarea>
         </div>
 
         <div class="form-group">
-            <label>Dirección:</label>
-            <textarea name="direccion" rows="2" placeholder="Dirección completa"></textarea>
+            <label>Cliente:</label>
+            <input type="text" name="cliente" placeholder="Nombre del cliente" required>
         </div>
 
         <div class="form-group">
-            <label>Tipo de operación:</label>
-            <select name="tipo_operacion" required>
-                <option value="">Seleccione</option>
-                <option value="compra">Compra de bienes</option>
-                <option value="servicio">Adquisición de servicios</option>
-                <option value="importacion">Importación</option>
-                <option value="otros">Otros</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Concepto de la liquidación:</label>
-            <textarea name="concepto" rows="4" placeholder="Descripción detallada de la liquidación" required></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>Número de ítem:</label>
-            <input type="number" name="numero_item" value="1" required>
-        </div>
-
-        <div class="form-group">
-            <label>Código del producto/servicio:</label>
-            <input type="text" name="codigo" placeholder="Código interno">
+            <label>Documento del cliente:</label>
+            <input type="text" name="documento_cliente" placeholder="DUI o NIT">
         </div>
 
         <div class="form-group">
             <label>Descripción del producto/servicio:</label>
-            <textarea name="descripcion" rows="3" placeholder="Descripción" required></textarea>
+            <textarea name="descripcion" rows="3" placeholder="Descripción"></textarea>
         </div>
 
         <div class="form-group">
@@ -311,47 +276,15 @@
         </div>
 
         <div class="form-group">
-            <label>Unidad de medida:</label>
-            <input type="text" name="unidad_medida" placeholder="Ej: Unidad, Caja, Litro, etc.">
-        </div>
-
-        <div class="form-group">
             <label>Precio unitario:</label>
             <input type="number" name="precio_unitario" step="0.01" placeholder="0.00" required>
         </div>
 
         <div class="form-group">
-            <label>Descuento (si aplica):</label>
-            <input type="number" name="descuento" step="0.01" placeholder="0.00" value="0.00">
+            <label>Monto a acreditar:</label>
+            <input type="number" name="monto_acreditar" step="0.01" placeholder="0.00" required>
         </div>
 
-        <div class="form-group">
-            <label>Monto sujeto a operación:</label>
-            <input type="number" name="monto_operacion" step="0.01" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>¿Aplica IVA?</label>
-            <select name="aplica_iva" required>
-                <option value="si">Sí</option>
-                <option value="no">No (Exento)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Condición de pago:</label>
-            <select name="condicion_pago" required>
-                <option value="1">Contado</option>
-                <option value="2">Crédito</option>
-                <option value="3">Otro</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Plazo de pago (días, si es a crédito):</label>
-            <input type="number" name="plazo_pago" placeholder="30">
-        </div>
-
-        <button type="submit" class="btn-submit">Generar Documento de Liquidación</button>
+        <button type="submit" class="btn-submit">Generar Nota de Crédito</button>
     </form>
 </div>

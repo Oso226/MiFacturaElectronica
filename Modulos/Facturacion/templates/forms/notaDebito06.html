@@ -1,7 +1,7 @@
 <div class="form-container">
     <style>
     .form-container {
-        max-width: 850px;
+        max-width: 800px;
         margin: 40px auto;
         background: white;
         padding: 45px;
@@ -105,13 +105,11 @@
         margin: 0;
     }
 
-    .form-group input[type="tel"],
-    .form-group input[type="email"] {
-        font-family: inherit;
+    .form-group input[type="date"] {
+        cursor: pointer;
     }
 
-    .form-group input[name="precio_unitario"],
-    .form-group input[name="monto_operacion"] {
+    .form-group input[name="monto_adicional"] {
         font-size: 1.2em;
         font-weight: 700;
         color: #1C82BE;
@@ -119,23 +117,10 @@
         border-color: #69A9C5;
     }
 
-    .form-group input[name="precio_unitario"]:focus,
-    .form-group input[name="monto_operacion"]:focus {
+    .form-group input[name="monto_adicional"]:focus {
         background-color: white;
         border-color: #1C82BE;
         box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.15);
-    }
-
-    .form-group input[name="descuento"] {
-        font-weight: 600;
-        color: #dc3545;
-        background-color: #fff5f5;
-    }
-
-    .form-group input[name="descuento"]:focus {
-        border-color: #1C82BE;
-        background-color: white;
-        box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.1);
     }
 
     .form-group input:valid:not(:placeholder-shown),
@@ -229,129 +214,75 @@
         }
     }
 </style>
-    <h2>Documento Contable de Liquidación 11</h2>
-    <form method="POST" action="{% url 'crear_dte_tipo' 'liquidacion11' %}">
+    <h2>Nota de Débito 06</h2>
+    <form method="POST" action="{% url 'crear_dte_tipo' 'notaDebito06' %}">
         {% csrf_token %}
         
         <div class="form-group">
-            <label>Proveedor (Nombre o Razón Social):</label>
-            <input type="text" name="proveedor" placeholder="Nombre del proveedor" required>
-        </div>
-
-        <div class="form-group">
-            <label>Tipo de documento del proveedor:</label>
+            <label>Tipo de documento relacionado:</label>
             <select name="tipo_documento" required>
-                <option value="">Seleccione</option>
-                <option value="36">NIT</option>
-                <option value="13">DUI</option>
-                <option value="37">Pasaporte</option>
-                <option value="03">Otro</option>
+                <option value="">Seleccione tipo de documento</option>
+                <option value="01">Factura 01</option>
+                <option value="03">Comprobante de Crédito Fiscal 03</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Número de documento:</label>
-            <input type="text" name="numero_documento" placeholder="0000-000000-000-0" required>
+            <label>Número de control del documento relacionado:</label>
+            <input type="text" name="numero_control" placeholder="DTE-01-00000001-000000000000001" required>
         </div>
 
         <div class="form-group">
-            <label>NRC (si aplica):</label>
-            <input type="text" name="nrc" placeholder="000000-0">
+            <label>Código de generación del documento relacionado:</label>
+            <input type="text" name="codigo_generacion" placeholder="XXXX-XXXX-XXXX-XXXX" required>
         </div>
 
         <div class="form-group">
-            <label>Teléfono:</label>
-            <input type="tel" name="telefono" placeholder="0000-0000">
+            <label>Fecha del documento original:</label>
+            <input type="date" name="fecha_documento" required>
         </div>
 
         <div class="form-group">
-            <label>Correo electrónico:</label>
-            <input type="email" name="correo" placeholder="proveedor@email.com">
+            <label>Cliente:</label>
+            <input type="text" name="cliente" placeholder="Nombre del cliente" required>
         </div>
 
         <div class="form-group">
-            <label>Dirección:</label>
-            <textarea name="direccion" rows="2" placeholder="Dirección completa"></textarea>
+            <label>Documento del cliente:</label>
+            <input type="text" name="documento_cliente" placeholder="DUI o NIT">
         </div>
 
         <div class="form-group">
-            <label>Tipo de operación:</label>
-            <select name="tipo_operacion" required>
-                <option value="">Seleccione</option>
-                <option value="compra">Compra de bienes</option>
-                <option value="servicio">Adquisición de servicios</option>
-                <option value="importacion">Importación</option>
+            <label>Concepto del cargo adicional:</label>
+            <textarea name="concepto" rows="4" placeholder="Motivo del cargo adicional (intereses, recargos, etc.)" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo de cargo:</label>
+            <select name="tipo_cargo" required>
+                <option value="">Seleccione tipo de cargo</option>
+                <option value="intereses">Intereses por mora</option>
+                <option value="recargo">Recargo</option>
+                <option value="gastos">Gastos administrativos</option>
                 <option value="otros">Otros</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Concepto de la liquidación:</label>
-            <textarea name="concepto" rows="4" placeholder="Descripción detallada de la liquidación" required></textarea>
+            <label>Descripción del cargo:</label>
+            <textarea name="descripcion" rows="3" placeholder="Descripción detallada"></textarea>
         </div>
 
         <div class="form-group">
-            <label>Número de ítem:</label>
-            <input type="number" name="numero_item" value="1" required>
+            <label>Monto adicional a cobrar:</label>
+            <input type="number" name="monto_adicional" step="0.01" placeholder="0.00" required>
         </div>
 
         <div class="form-group">
-            <label>Código del producto/servicio:</label>
-            <input type="text" name="codigo" placeholder="Código interno">
+            <label>Porcentaje (si aplica):</label>
+            <input type="number" name="porcentaje" step="0.01" placeholder="0.00">
         </div>
 
-        <div class="form-group">
-            <label>Descripción del producto/servicio:</label>
-            <textarea name="descripcion" rows="3" placeholder="Descripción" required></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" step="0.01" placeholder="1" required>
-        </div>
-
-        <div class="form-group">
-            <label>Unidad de medida:</label>
-            <input type="text" name="unidad_medida" placeholder="Ej: Unidad, Caja, Litro, etc.">
-        </div>
-
-        <div class="form-group">
-            <label>Precio unitario:</label>
-            <input type="number" name="precio_unitario" step="0.01" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>Descuento (si aplica):</label>
-            <input type="number" name="descuento" step="0.01" placeholder="0.00" value="0.00">
-        </div>
-
-        <div class="form-group">
-            <label>Monto sujeto a operación:</label>
-            <input type="number" name="monto_operacion" step="0.01" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>¿Aplica IVA?</label>
-            <select name="aplica_iva" required>
-                <option value="si">Sí</option>
-                <option value="no">No (Exento)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Condición de pago:</label>
-            <select name="condicion_pago" required>
-                <option value="1">Contado</option>
-                <option value="2">Crédito</option>
-                <option value="3">Otro</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Plazo de pago (días, si es a crédito):</label>
-            <input type="number" name="plazo_pago" placeholder="30">
-        </div>
-
-        <button type="submit" class="btn-submit">Generar Documento de Liquidación</button>
+        <button type="submit" class="btn-submit">Generar Nota de Débito</button>
     </form>
 </div>

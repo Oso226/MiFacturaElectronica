@@ -1,7 +1,7 @@
 <div class="form-container">
     <style>
     .form-container {
-        max-width: 850px;
+        max-width: 800px;
         margin: 40px auto;
         background: white;
         padding: 45px;
@@ -105,13 +105,12 @@
         margin: 0;
     }
 
-    .form-group input[type="tel"],
-    .form-group input[type="email"] {
-        font-family: inherit;
+    .form-group input[type="month"] {
+        cursor: pointer;
     }
 
-    .form-group input[name="precio_unitario"],
-    .form-group input[name="monto_operacion"] {
+    .form-group input[name="monto_base"],
+    .form-group input[name="monto_retenido"] {
         font-size: 1.2em;
         font-weight: 700;
         color: #1C82BE;
@@ -119,23 +118,16 @@
         border-color: #69A9C5;
     }
 
-    .form-group input[name="precio_unitario"]:focus,
-    .form-group input[name="monto_operacion"]:focus {
+    .form-group input[name="monto_base"]:focus,
+    .form-group input[name="monto_retenido"]:focus {
         background-color: white;
         border-color: #1C82BE;
         box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.15);
     }
 
-    .form-group input[name="descuento"] {
+    .form-group input[name="porcentaje_retencion"] {
         font-weight: 600;
-        color: #dc3545;
-        background-color: #fff5f5;
-    }
-
-    .form-group input[name="descuento"]:focus {
-        border-color: #1C82BE;
-        background-color: white;
-        box-shadow: 0 0 0 4px rgba(28, 130, 190, 0.1);
+        color: #1C82BE;
     }
 
     .form-group input:valid:not(:placeholder-shown),
@@ -229,23 +221,22 @@
         }
     }
 </style>
-    <h2>Documento Contable de Liquidación 11</h2>
-    <form method="POST" action="{% url 'crear_dte_tipo' 'liquidacion11' %}">
+    <h2>Comprobante de Retención 07</h2>
+    <form method="POST" action="{% url 'crear_dte_tipo' 'retencion07' %}">
         {% csrf_token %}
         
         <div class="form-group">
-            <label>Proveedor (Nombre o Razón Social):</label>
-            <input type="text" name="proveedor" placeholder="Nombre del proveedor" required>
+            <label>Sujeto retenido (Nombre o Razón Social):</label>
+            <input type="text" name="sujeto_retenido" placeholder="Nombre o razón social" required>
         </div>
 
         <div class="form-group">
-            <label>Tipo de documento del proveedor:</label>
+            <label>Tipo de documento:</label>
             <select name="tipo_documento" required>
                 <option value="">Seleccione</option>
                 <option value="36">NIT</option>
                 <option value="13">DUI</option>
                 <option value="37">Pasaporte</option>
-                <option value="03">Otro</option>
             </select>
         </div>
 
@@ -260,13 +251,8 @@
         </div>
 
         <div class="form-group">
-            <label>Teléfono:</label>
-            <input type="tel" name="telefono" placeholder="0000-0000">
-        </div>
-
-        <div class="form-group">
-            <label>Correo electrónico:</label>
-            <input type="email" name="correo" placeholder="proveedor@email.com">
+            <label>Actividad económica:</label>
+            <input type="text" name="actividad_economica" placeholder="Descripción de actividad">
         </div>
 
         <div class="form-group">
@@ -275,83 +261,47 @@
         </div>
 
         <div class="form-group">
-            <label>Tipo de operación:</label>
-            <select name="tipo_operacion" required>
+            <label>Tipo de retención:</label>
+            <select name="tipo_retencion" required>
                 <option value="">Seleccione</option>
-                <option value="compra">Compra de bienes</option>
-                <option value="servicio">Adquisición de servicios</option>
-                <option value="importacion">Importación</option>
-                <option value="otros">Otros</option>
+                <option value="C3">Retención 1% - Personas Naturales</option>
+                <option value="C5">Retención 10% - Honorarios</option>
+                <option value="C7">Retención 5% - Servicios</option>
+                <option value="62">Retención 13% IVA</option>
+                <option value="R1">Retención Renta</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Concepto de la liquidación:</label>
-            <textarea name="concepto" rows="4" placeholder="Descripción detallada de la liquidación" required></textarea>
+            <label>Documento relacionado (si aplica):</label>
+            <input type="text" name="documento_relacionado" placeholder="Número de factura o documento">
         </div>
 
         <div class="form-group">
-            <label>Número de ítem:</label>
-            <input type="number" name="numero_item" value="1" required>
+            <label>Descripción del servicio/operación:</label>
+            <textarea name="descripcion" rows="4" placeholder="Descripción de la operación sujeta a retención" required></textarea>
         </div>
 
         <div class="form-group">
-            <label>Código del producto/servicio:</label>
-            <input type="text" name="codigo" placeholder="Código interno">
+            <label>Monto base (sujeto a retención):</label>
+            <input type="number" name="monto_base" step="0.01" placeholder="0.00" required>
         </div>
 
         <div class="form-group">
-            <label>Descripción del producto/servicio:</label>
-            <textarea name="descripcion" rows="3" placeholder="Descripción" required></textarea>
+            <label>Porcentaje de retención (%):</label>
+            <input type="number" name="porcentaje_retencion" step="0.01" placeholder="1.00" required>
         </div>
 
         <div class="form-group">
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" step="0.01" placeholder="1" required>
+            <label>Monto retenido:</label>
+            <input type="number" name="monto_retenido" step="0.01" placeholder="0.00" required>
         </div>
 
         <div class="form-group">
-            <label>Unidad de medida:</label>
-            <input type="text" name="unidad_medida" placeholder="Ej: Unidad, Caja, Litro, etc.">
+            <label>Período de retención:</label>
+            <input type="month" name="periodo_retencion" required>
         </div>
 
-        <div class="form-group">
-            <label>Precio unitario:</label>
-            <input type="number" name="precio_unitario" step="0.01" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>Descuento (si aplica):</label>
-            <input type="number" name="descuento" step="0.01" placeholder="0.00" value="0.00">
-        </div>
-
-        <div class="form-group">
-            <label>Monto sujeto a operación:</label>
-            <input type="number" name="monto_operacion" step="0.01" placeholder="0.00" required>
-        </div>
-
-        <div class="form-group">
-            <label>¿Aplica IVA?</label>
-            <select name="aplica_iva" required>
-                <option value="si">Sí</option>
-                <option value="no">No (Exento)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Condición de pago:</label>
-            <select name="condicion_pago" required>
-                <option value="1">Contado</option>
-                <option value="2">Crédito</option>
-                <option value="3">Otro</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Plazo de pago (días, si es a crédito):</label>
-            <input type="number" name="plazo_pago" placeholder="30">
-        </div>
-
-        <button type="submit" class="btn-submit">Generar Documento de Liquidación</button>
+        <button type="submit" class="btn-submit">Generar Comprobante de Retención</button>
     </form>
 </div>
