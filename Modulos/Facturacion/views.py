@@ -25,7 +25,7 @@ def iniciar_sesion(request):
         else:
             messages.error(request, "Usuario o contraseña incorrectos.")
 
-    return render(request, 'registration/login.html')
+    return render(request, 'Facturacion/index.html')
     
 def cerrar_sesion(request):
     logout(request)
@@ -69,3 +69,29 @@ def crear_dte(request, tipo_dte=None):
         'tipo_dte': tipo_dte
     }
     return render(request, 'Facturacion/crear_dte.html', context)
+
+def index(request):
+    return render(request, 'index.html')
+
+from django.shortcuts import render
+
+def index(request):
+    return render(request, 'Facturacion/index.html')
+
+def factura01(request):
+    return render(request, 'Facturacion/templates/forms/factura01.html')
+
+def ccf03(request):
+    return render(request, 'Facturacion/forms/ccf03.html')
+
+def liquidacion11(request):
+    return render(request, 'Facturacion/forms/liquidacion11.html')
+
+def notaCredito05(request):
+    return render(request, 'Facturacion/forms/notaCredito05.html')
+
+def notaDebito06(request):
+    return render(request, 'Facturacion/forms/notaDebito06.html')
+
+def retencion07(request):
+    return render(request, 'Facturacion/forms/retencion07.html')
