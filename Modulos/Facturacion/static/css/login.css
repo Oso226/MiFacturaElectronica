@@ -1,0 +1,67 @@
+/* ===========================
+   LOGIN - OMNIGEST
+   =========================== */
+body {
+  background: linear-gradient(180deg, #00224d, #0c356a);
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-container {
+  background-color: rgba(255, 255, 255, 0.07);
+  padding: 40px;
+  border-radius: 15px;
+  width: 400px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.login-container img {
+  width: 120px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 10px rgba(0, 188, 212, 0.7));
+}
+
+h3 {
+  color: #00bcd4;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+p {
+  color: #cce7ff;
+  font-size: 0.95rem;
+  margin-bottom: 25px;
+}
+
+.btn-primary {
+  background-color: #00bcd4;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #0097a7;
+}
+
+.btn-outline-info {
+  color: #00bcd4;
+  border: 1px solid #00bcd4;
+}
+
+.btn-outline-info:hover {
+  background-color: #00bcd4;
+  color: #001437;
+}
+
+a {
+  color: #00bcd4;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

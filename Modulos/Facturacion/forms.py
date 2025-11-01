@@ -16,6 +16,10 @@ class ClienteForm(forms.ModelForm):
             'correo': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ejemplo@correo.com'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '7777-7777'}),
         }
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = ['nombre', 'nit', 'nrc', 'direccion', 'correo', 'telefono']
 
 # ======================================================
 # FORMULARIO PROVEEDOR

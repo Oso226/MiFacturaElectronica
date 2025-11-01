@@ -11,6 +11,7 @@ urlpatterns = [
     path('menu/', views.menu_principal, name='menu_principal'),
 
     # Catálogos
+    path('menu/catalogos/', views.menu_catalogos, name='menu_catalogos'),
     path('clientes/', views.lista_clientes, name='lista_clientes'),
     path('proveedores/', views.lista_proveedores, name='lista_proveedores'),
     path('productos/', views.lista_productos, name='lista_productos'),
@@ -22,6 +23,10 @@ urlpatterns = [
     path('dte/nuevo/<str:tipo_dte>/', views.crear_dte, name='crear_dte_tipo'),
     path('clientes/nuevo/', views.crear_cliente, name='crear_cliente'),
     # Formularios nuevos
+    path('clientes/', views.lista_clientes, name='lista_clientes'),
+    path('clientes/crear/', views.crear_cliente, name='crear_cliente'),
+    path('clientes/editar/<int:id>/', views.editar_cliente, name='editar_cliente'),
+    path('clientes/eliminar/<int:id>/', views.eliminar_cliente, name='eliminar_cliente'),
     path('proveedores/nuevo/', views.crear_proveedor, name='crear_proveedor'),
     path('productos/nuevo/', views.crear_producto, name='crear_producto'),
 

@@ -1,0 +1,146 @@
+/* ===========================
+   OMNIGEST - MENÚ EN DOS FILAS (SOLO SEPARACIÓN HORIZONTAL AJUSTADA)
+   =========================== */
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  color: white;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Fondo con logo */
+.hero-container {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background: url("../img/logo.png") no-repeat center center/cover;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 15, 40, 0.85);
+  backdrop-filter: blur(5px);
+  z-index: 1;
+}
+
+/* 🔹 Encabezado (texto superior) */
+.header {
+  position: relative;
+  z-index: 2;
+  margin-top: 40px;
+}
+
+.titulo {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #00e5ff;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
+}
+
+.subtitulo {
+  color: #cdefff;
+  font-size: 1.1rem;
+}
+
+/* 🔹 Contenedor de tarjetas */
+.menu-opciones {
+  position: relative;
+  z-index: 2;
+  margin-top: 80px; /* espacio superior para dejar visible el logo */
+}
+
+/* 🔹 Fila de tarjetas */
+.menu-opciones .row {
+  margin-bottom: 80px; /* espacio vertical entre filas */
+  justify-content: center;
+  gap: 400px; /* 🔹 aumenta la separación horizontal entre los pares */
+}
+
+/* 🔹 Tarjetas */
+.menu-card {
+  background-color: rgba(0, 188, 212, 0.88);
+  border: none;
+  border-radius: 18px;
+  color: white;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+  padding: 20px;
+  width: 300px;
+}
+
+.menu-card:hover {
+  transform: translateY(-6px);
+  background-color: rgba(0, 229, 255, 0.95);
+  color: #001437;
+  box-shadow: 0 10px 28px rgba(0, 229, 255, 0.6);
+}
+
+.menu-card h5 {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+
+.menu-card p {
+  color: #f1ffff;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* 🔹 Botones internos */
+.btn-info {
+  background-color: white;
+  border: none;
+  color: #001437;
+  font-weight: bold;
+  font-size: 1rem;
+  width: 110px;
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+}
+
+.btn-info:hover {
+  background-color: #001437;
+  color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.9);
+}
+
+/* 🔹 Botón de cerrar sesión */
+.btn-cerrar {
+  position: absolute;
+  top: 25px;
+  right: 40px;
+  background: transparent;
+  border: 2px solid #00e5ff;
+  color: #00e5ff;
+  font-weight: bold;
+  border-radius: 25px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  z-index: 3;
+  transition: 0.3s;
+}
+
+.btn-cerrar:hover {
+  background-color: #00e5ff;
+  color: #001437;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
+}
+/* 🔹 Mueve solo las tarjetas del lado derecho */
+.menu-opciones .row .col-md-3:nth-child(2),
+.menu-opciones .row .col-md-3:nth-child(4) {
+  margin-left: 300px; /* ajusta el valor según cuánto quieras mover */
+}
+

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .models import DTE, Perfil, Cliente, Proveedor, Producto
 from .forms import ClienteForm
+from .permisos import rol_requerido
 
 # ======================================================
 # AUTENTICACIÓN
@@ -42,27 +43,35 @@ def cerrar_sesion(request):
     return redirect('login')
 
 
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import Perfil
+
 def registro(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password1')
         rol = request.POST.get('rol')
 
-        # Verifica si ya existe el usuario
+        # Verifica si el usuario ya existe
         if User.objects.filter(username=username).exists():
             messages.error(request, "El nombre de usuario ya existe.")
         else:
-            # Crea el usuario
+            # ✅ Crea el usuario (el signal creará el perfil automáticamente)
             user = User.objects.create_user(username=username, password=password)
             user.save()
 
-            # Crea el perfil asociado
-            Perfil.objects.create(user=user, rol=rol)
+            # ✅ Recupera el perfil creado por el signal
+            perfil = Perfil.objects.get(user=user)
+            perfil.rol = rol  # actualiza el rol elegido en el formulario
+            perfil.save()
 
             messages.success(request, f"Usuario '{username}' registrado exitosamente como {rol}.")
-            return redirect('login')  # 🔹 Registro es la única vista que no redirige al menú
+            return redirect('login')
 
     return render(request, 'registration/registro.html')
+
 
 
 # ======================================================
@@ -123,7 +132,8 @@ def anular_dte(request, id):
 def reporte_ventas(request):
     dtes = DTE.objects.filter(estado='Activo')
     total_general = sum(d.total for d in dtes)
-    return render(request, 'Facturacion/reportes/ventas.html', {'dtes': dtes, 'total': total_general})
+    return render(request, 'Facturacion/ventas.html', {'dtes': dtes, 'total': total_general})
+
 
 @login_required
 def menu_facturacion(request):
@@ -140,23 +150,42 @@ def menu_facturacion(request):
 # ======================================================
 
 @login_required
+def menu_catalogos(request):
+    """
+    Vista intermedia para acceder a los catálogos: Clientes, Proveedores y Productos.
+    """
+    return render(request, 'Facturacion/menu_catalogos.html')
+
+
 def lista_clientes(request):
     clientes = Cliente.objects.all()
     return render(request, 'Facturacion/clientes.html', {'clientes': clientes})
 
-
-@login_required
 def crear_cliente(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Cliente agregado correctamente.")
-            return redirect('menu_principal')  # 🔹 Cambiado para volver al menú
+            return redirect('lista_clientes')
     else:
         form = ClienteForm()
     return render(request, 'Facturacion/form_cliente.html', {'form': form})
 
+def editar_cliente(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_clientes')
+    else:
+        form = ClienteForm(instance=cliente)
+    return render(request, 'Facturacion/form_cliente.html', {'form': form})
+
+def eliminar_cliente(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+    cliente.delete()
+    return redirect('lista_clientes')
 
 @login_required
 def lista_proveedores(request):
@@ -205,5 +234,87 @@ def crear_producto(request):
     else:
         form = ProductoForm()
     return render(request, 'Facturacion/form_producto.html', {'form': form})
+
+# ========================
+# MENÚ PRINCIPAL (Todos)
+# ========================
+@login_required
+def menu_principal(request):
+    return render(request, 'Facturacion/menu_principal.html')
+
+# ========================
+# CLIENTES
+# ========================
+@rol_requerido(['Administrador', 'Contador', 'Empleado'])
+def lista_clientes(request):
+    clientes = Cliente.objects.all()
+    return render(request, 'Facturacion/clientes.html', {'clientes': clientes})
+
+@rol_requerido(['Administrador'])
+def eliminar_cliente(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+    cliente.delete()
+    return redirect('lista_clientes')
+
+@rol_requerido(['Administrador', 'Contador'])
+def editar_cliente(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_clientes')
+    else:
+        form = ClienteForm(instance=cliente)
+    return render(request, 'Facturacion/form_cliente.html', {'form': form})
+
+@rol_requerido(['Administrador', 'Empleado'])
+def crear_cliente(request):
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_clientes')
+    else:
+        form = ClienteForm()
+    return render(request, 'Facturacion/form_cliente.html', {'form': form})
+
+# ========================
+# FACTURACIÓN
+# ========================
+@rol_requerido(['Administrador', 'Contador', 'Empleado'])
+def lista_dte(request):
+    dtes = DTE.objects.all()
+    return render(request, 'Facturacion/lista_dte.html', {'dtes': dtes})
+
+@rol_requerido(['Administrador', 'Empleado'])
+def crear_dte(request, tipo_dte=None):
+    context = {'tipo_dte': tipo_dte}
+    return render(request, 'Facturacion/crear_dte.html', context)
+
+@rol_requerido(['Administrador', 'Contador'])
+def anular_dte(request, id):
+    dte = get_object_or_404(DTE, id=id)
+    dte.estado = 'Anulado'
+    dte.save()
+    messages.success(request, f'Documento {dte.numero_control} ha sido anulado.')
+    return redirect('lista_dte')
+
+# ========================
+# REPORTES
+# ========================
+@rol_requerido(['Administrador', 'Contador'])
+def reporte_ventas(request):
+    dtes = DTE.objects.filter(estado='Activo')
+    total_general = sum(d.total for d in dtes)
+    return render(request, 'Facturacion/ventas.html', {'dtes': dtes, 'total': total_general})
+
+# ========================
+# USUARIOS
+# ========================
+@rol_requerido(['Administrador'])
+def lista_usuarios(request):
+    usuarios = User.objects.all().select_related('perfil')
+    return render(request, 'Facturacion/usuarios.html', {'usuarios': usuarios})
 
 
