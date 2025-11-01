@@ -71,6 +71,11 @@ class DTE(models.Model):
         ('06', 'Nota de Débito'),
     ]
 
+    ESTADOS = [
+        ('Activo', 'Activo'),
+        ('Anulado', 'Anulado'),
+    ]
+
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     tipo_dte = models.CharField(max_length=2, choices=TIPO_DTE_CHOICES, default='03')
@@ -83,12 +88,16 @@ class DTE(models.Model):
     iva = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-    # Datos fiscales otorgados por Hacienda
+    # Datos fiscales
     codigo_generacion = models.CharField(max_length=100, blank=True, null=True)
     sello_recepcion = models.CharField(max_length=150, blank=True, null=True)
 
+    # ⚙️ Estado del documento
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='Activo')
+
     def __str__(self):
         return f"{self.get_tipo_dte_display()} - {self.numero_control}"
+
 
 
 # ======================================================
@@ -104,3 +113,17 @@ class DetalleDTE(models.Model):
     def __str__(self):
         return f"{self.producto.descripcion} ({self.cantidad})"
 
+# ======================================================
+# MODELO PROVEEDOR
+# ======================================================
+class Proveedor(models.Model):
+    nombre = models.CharField(max_length=120)
+    nit = models.CharField(max_length=20, unique=True)
+    nrc = models.CharField(max_length=20, blank=True, null=True)
+    direccion = models.TextField()
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    correo = models.EmailField(blank=True, null=True)
+    representante = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
