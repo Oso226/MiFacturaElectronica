@@ -45,6 +45,40 @@
                     <a href="{% url 'lista_productos' %}" class="btn btn-custom">Abrir</a>
                 </div>
             </div>
+
+            <!-- Tarjeta: Libro de Compras -->
+            <div class="card menu-card">
+                <div class="card-body">
+                    <h5 class="card-title">📘 Libro de Compras</h5>
+                    <p class="card-text">Registre las compras realizadas por la empresa.</p>
+                    <a href="{% url 'libro_compras' %}" class="btn btn-custom">Abrir</a>
+                </div>
+            </div>
+
+            <!-- Tarjeta: Libro de Ventas al Consumidor -->
+            <div class="card menu-card">
+                <div class="card-body">
+                    <h5 class="card-title">📗 Libro de Ventas al Consumidor</h5>
+                    <p class="card-text">Controle las ventas al consumidor final.</p>
+                    <a href="{% url 'libro_ventas' %}" class="btn btn-custom">Abrir</a>
+                </div>
+            </div>
+            <!-- Tarjeta: Inventario -->
+            <div class="card menu-card">
+                <div class="card-body">
+                    <h5 class="card-title">📊 Inventario</h5>
+                    <p class="card-text">Monitoree las existencias y movimientos de productos.</p>
+                    <a href="{% url 'inventario' %}" class="btn btn-custom">Abrir</a>
+                </div>
+            </div>
+            <!-- Tarjeta: Compras -->
+            <div class="card menu-card">
+                <div class="card-body">
+                    <h5 class="card-title">🧾 Compras</h5>
+                    <p class="card-text">Registrar compras a proveedores y actualizar inventario.</p>
+                    <a href="{% url 'registrar_compra' %}" class="btn btn-custom">Abrir</a>
+                </div>
+            </div>
         </div>
 
         <div class="text-center mt-5">
@@ -55,3 +89,4 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

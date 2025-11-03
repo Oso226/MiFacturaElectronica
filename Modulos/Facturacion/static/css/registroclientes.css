@@ -1,0 +1,60 @@
+body {
+    background-color: #e0f7fa; /* Fondo celeste suave */
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Tarjeta */
+.card {
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+    border-radius: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Título */
+h2 {
+    color: #0277bd;
+    font-weight: bold;
+}
+
+/* Etiquetas */
+label {
+    font-weight: 600;
+    color: #01579b;
+}
+
+/* Campos de texto */
+input, textarea {
+    border: 1px solid #81d4fa;
+    border-radius: 8px;
+    text-align: center;
+    width: 100%;
+    padding: 8px;
+}
+
+/* Botones */
+.btn-success {
+    background-color: #0288d1;
+    border: none;
+    transition: background 0.3s;
+}
+
+.btn-success:hover {
+    background-color: #01579b;
+}
+
+.btn-secondary {
+    background-color: #4fc3f7;
+    border: none;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background-color: #0288d1;
+}

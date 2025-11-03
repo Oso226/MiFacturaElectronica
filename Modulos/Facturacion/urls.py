@@ -14,7 +14,16 @@ urlpatterns = [
     path('menu/catalogos/', views.menu_catalogos, name='menu_catalogos'),
     path('clientes/', views.lista_clientes, name='lista_clientes'),
     path('proveedores/', views.lista_proveedores, name='lista_proveedores'),
+    path('proveedores/editar/<int:id>/', views.editar_proveedor, name='editar_proveedor'),
+    path('proveedores/eliminar/<int:id>/', views.eliminar_proveedor, name='eliminar_proveedor'),
     path('productos/', views.lista_productos, name='lista_productos'),
+    path('libros/compras/', views.libro_compras, name='libro_compras'),
+    path('libros/ventas/', views.libro_ventas, name='libro_ventas'),
+    path('inventario/', views.inventario, name='inventario'),
+    path('productos/eliminar/<int:id>/', views.eliminar_producto, name='eliminar_producto'),
+    path('compras/registrar/', views.registrar_compra, name='registrar_compra'),
+
+
 
     # Facturación
     path('menu/facturacion/', views.menu_facturacion, name='menu_facturacion'),
