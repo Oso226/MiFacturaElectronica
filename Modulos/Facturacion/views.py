@@ -15,6 +15,8 @@ from decimal import Decimal
 from django.db import IntegrityError
 from django.utils.timezone import now
 from .models import Compra
+from django.http import JsonResponse
+
 
 
 
@@ -134,9 +136,9 @@ def menu_catalogos(request):
     return render(request, 'Facturacion/menu_catalogos.html')
 
 
-@rol_requerido(['Administrador', 'Contador', 'Empleado'])
+@rol_requerido(['Administrador', 'Empleado'])
 def lista_clientes(request):
-    clientes = Cliente.objects.all()
+    clientes = Cliente.objects.all().order_by('-id')[:20]  # 🔹 20 registros más nuevos
     return render(request, 'Facturacion/clientes.html', {'clientes': clientes})
 
 
@@ -146,11 +148,12 @@ def crear_cliente(request):
         form = ClienteForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Cliente agregado correctamente.")
-            return redirect('lista_clientes')
+            return JsonResponse({'success': True})  # ✅ Para cerrar el modal
+        return JsonResponse({'error': 'Formulario inválido'}, status=400)
+
     else:
         form = ClienteForm()
-    return render(request, 'Facturacion/form_cliente.html', {'form': form})
+        return render(request, 'Facturacion/form_cliente.html', {'form': form})
 
 
 @rol_requerido(['Administrador', 'Contador'])
@@ -233,25 +236,24 @@ def lista_productos(request):
 @login_required
 def crear_producto(request):
     """
-    Crea un nuevo producto en el catálogo base.
-    No permite inventario inicial (siempre inicia en 0).
+    Crea un nuevo producto en el catálogo base (para el modal).
     """
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
             codigo = form.cleaned_data['codigo']
             if Producto.objects.filter(codigo=codigo).exists():
-                messages.warning(request, f"⚠️ El producto con código '{codigo}' ya existe.")
-                return redirect('inventario')
+                return JsonResponse({'error': f"El código '{codigo}' ya existe."}, status=400)
+            
             producto = form.save(commit=False)
-            producto.inventario = 0  # 🔹 fuerza inventario en 0
+            producto.inventario = 0
             producto.save()
-            messages.success(request, "✅ Producto agregado correctamente al catálogo (sin existencias).")
-            return redirect('inventario')
+            return JsonResponse({'success': True})  # ✅ Cierra modal al guardar
+        return JsonResponse({'error': 'Formulario inválido'}, status=400)
     else:
         form = ProductoForm()
+        return render(request, 'Facturacion/form_producto.html', {'form': form})
 
-    return render(request, 'Facturacion/form_producto.html', {'form': form})
 
 
 
@@ -276,11 +278,16 @@ def eliminar_producto(request, id):
 # 💰 REGISTRAR COMPRAS (Actualiza inventario y libro)
 # ======================================================
 
+from django.http import JsonResponse
+
 @login_required
 def registrar_compra(request):
     """
     Registra una compra, actualiza inventario y genera el libro de compras.
+    Compatible con AJAX y uso normal.
     """
+    print("👉 Headers recibidos:", request.headers)  # 👈 debug temporal
+
     if request.method == 'POST':
         try:
             producto_id = request.POST.get('producto')
@@ -302,7 +309,8 @@ def registrar_compra(request):
                 cantidad=cantidad,
                 descripcion=f"Compra registrada de {proveedor.nombre}"
             )
-            # 4️⃣ Registrar compra (Libro de Compras)
+
+            # 3️⃣ Registrar compra
             Compra.objects.create(
                 fecha=now(),
                 comprobante_numero=f"COMP-{now().strftime('%Y%m%d%H%M%S')}",
@@ -313,7 +321,7 @@ def registrar_compra(request):
                 total=total
             )
 
-            # 5️⃣ Registrar DTE
+            # 4️⃣ Registrar DTE
             from .models import Empresa, Cliente
             empresa = Empresa.objects.first()
             cliente = Cliente.objects.first()
@@ -331,16 +339,33 @@ def registrar_compra(request):
                     fecha_emision=now()
                 )
 
-            messages.success(
-                request,
-                f"✅ Compra registrada correctamente. Se añadieron {cantidad} unidades al inventario de '{producto.descripcion}'."
-            )
+            # ✅ Si viene del modal (AJAX)
+            if (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+            ):
+                return JsonResponse({
+                    'success': True,
+                    'message': f"Compra registrada correctamente. Se añadieron {cantidad} unidades al inventario de '{producto.descripcion}'."
+                })
+
+            # ✅ Si es una petición normal
+            messages.success(request, "✅ Compra registrada correctamente.")
             return redirect('inventario')
 
         except Exception as e:
-            messages.error(request, f"Ocurrió un error al registrar la compra: {str(e)}")
+            error_msg = f"Ocurrió un error al registrar la compra: {str(e)}"
+
+            if (
+                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+                request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+            ):
+                return JsonResponse({'success': False, 'error': error_msg})
+
+            messages.error(request, error_msg)
             return redirect('inventario')
 
+    # ✅ GET → mostrar formulario
     productos = Producto.objects.all().order_by('descripcion')
     proveedores = Proveedor.objects.all().order_by('nombre')
     return render(request, 'Facturacion/form_compra.html', {

@@ -21,6 +21,15 @@ class ClienteForm(forms.ModelForm):
         model = Cliente
         fields = ['nombre', 'nit', 'nrc', 'direccion', 'correo', 'telefono']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Aplica clases Bootstrap a todos los campos
+        for field in self.fields.values():
+            field.widget.attrs.update({
+                'class': 'form-control',
+                'placeholder': field.label
+            })
+
 # ======================================================
 # FORMULARIO PROVEEDOR
 # ======================================================

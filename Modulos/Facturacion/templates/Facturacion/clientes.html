@@ -17,7 +17,7 @@
 
   <div class="d-flex justify-content-between mb-4">
     <a href="{% url 'menu_catalogos' %}" class="btn btn-secondary">← Volver a Catálogos</a>
-    <a href="{% url 'crear_cliente' %}" class="btn btn-agregar">+ Agregar Cliente</a>
+    <button class="btn btn-agregar" data-bs-toggle="modal" data-bs-target="#modalCliente">+ Agregar Cliente</button>
   </div>
 
   <div class="table-responsive">
@@ -59,7 +59,66 @@
   </div>
 </div>
 
+<!-- 🔹 MODAL PARA REGISTRAR NUEVO CLIENTE -->
+<div class="modal fade" id="modalCliente" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">➕ Registrar Nuevo Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="formClienteBody">
+        <!-- Aquí se cargará el formulario dinámicamente -->
+        <div class="text-center py-3 text-muted" id="loadingMessage">
+          Cargando formulario...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔹 Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalCliente = document.getElementById('modalCliente');
+    const formContainer = document.getElementById('formClienteBody');
+    const loadingMsg = document.getElementById('loadingMessage');
+
+    // Cargar el formulario al abrir el modal
+    modalCliente.addEventListener('show.bs.modal', () => {
+        formContainer.innerHTML = '<div class="text-center py-3 text-muted">Cargando formulario...</div>';
+        fetch("{% url 'crear_cliente' %}")
+            .then(res => res.text())
+            .then(html => { formContainer.innerHTML = html; })
+            .catch(() => {
+                formContainer.innerHTML = '<p class="text-danger text-center">Error al cargar el formulario.</p>';
+            });
+    });
+
+    // Enviar el formulario por AJAX
+    document.addEventListener('submit', (e) => {
+        if (e.target.matches('#formClienteBody form')) {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+
+            fetch(form.action, { method: 'POST', body: data })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(modalCliente);
+                        modal.hide(); // ✅ Cierra el modal
+                        location.reload(); // 🔄 Refresca la tabla
+                    } else {
+                        alert(data.error || 'Error al guardar el cliente.');
+                    }
+                })
+                .catch(() => alert('Error al enviar el formulario.'));
+        }
+    });
+});
+</script>
+
 </body>
 </html>
-

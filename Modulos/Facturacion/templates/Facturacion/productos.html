@@ -16,7 +16,9 @@
     </div>
 
     <div class="d-flex justify-content-end mb-3">
-        <a href="{% url 'crear_producto' %}" class="btn btn-primary">+ Agregar Producto</a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto">
+            + Agregar Producto
+        </button>
     </div>
 
     <table class="table table-hover table-striped align-middle text-center shadow-sm">
@@ -27,7 +29,7 @@
                 <th>Descripción</th>
                 <th>Unidad</th>
                 <th>Precio Unitario ($)</th>
-                <th>Existencias</th> <!-- ✅ nueva columna -->
+                <th>Existencias</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -63,6 +65,54 @@
     </table>
 </div>
 
+<!-- Modal -->
+<div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">➕ Registrar Nuevo Producto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="formProductoBody">
+        <!-- Aquí se cargará el formulario -->
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalProducto = document.getElementById('modalProducto');
+    const formContainer = document.getElementById('formProductoBody');
+
+    // Cargar el formulario al abrir el modal
+    modalProducto.addEventListener('show.bs.modal', () => {
+        fetch("{% url 'crear_producto' %}")
+            .then(res => res.text())
+            .then(html => { formContainer.innerHTML = html });
+    });
+
+    // Enviar el formulario sin recargar
+    document.addEventListener('submit', (e) => {
+        if (e.target.matches('#formProductoBody form')) {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+            fetch(form.action, { method: 'POST', body: data })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(modalProducto);
+                        modal.hide();
+                        location.reload(); // 🔁 refresca tabla
+                    } else {
+                        alert(data.error || 'Error al guardar el producto.');
+                    }
+                });
+        }
+    });
+});
+</script>
 </body>
 </html>

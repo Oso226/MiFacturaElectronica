@@ -1,120 +1,72 @@
-/* ===========================
-   Estilo Catálogo de Clientes - OMNIGEST
-   =========================== */
-
-body {
+/* 🔹 Forzar todo al borde superior */
+html, body {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(180deg, #001437, #0b2447);
-  color: #f5f5f5;
-  min-height: 100vh;
-  overflow-x: hidden;
+  padding: 0;
+  height: 100%;
+  background-color: #1d7dde;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Fondo translúcido para mayor contraste */
-.overlay {
+/* 🔹 Contenedor general */
+.contenedor-clientes {
+  padding-top: 0;
+  margin-top: 0;
+  text-align: center;
+}
+
+/* 🔹 Barra superior */
+.barra-superior {
+  background-color: #487fcd;
+  color: white;
+  width: 100%;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  z-index: 0;
+  z-index: 1000;
+  border-bottom: 3px solid #00bcd4;
 }
 
-.container {
-  position: relative;
-  z-index: 1;
+/* Ajuste para el resto del contenido bajo la barra */
+.table-responsive {
+  margin-top: 100px; /* deja espacio debajo de la barra superior */
 }
 
-.titulo {
-  color: #00bcd4;
-  font-weight: bold;
-}
-
-/* Botones */
-.btn-volver {
-  background: transparent;
-  border: 2px solid #00bcd4;
-  color: #00bcd4;
-  font-weight: bold;
-  border-radius: 25px;
-  padding: 8px 20px;
-  transition: 0.3s;
-}
-
-.btn-volver:hover {
-  background: #00bcd4;
-  color: #001437;
-}
-
+/* 🔹 Botones */
 .btn-agregar {
-  background: #00bcd4;
-  color: #001437;
-  font-weight: bold;
-  border-radius: 25px;
-  padding: 8px 20px;
+  background-color: #91d400;
+  color: white;
   border: none;
-  transition: 0.3s;
+  transition: 0.3s ease;
 }
-
 .btn-agregar:hover {
-  background: #0097a7;
+  background-color: #0097a7;
+}
+.btn-secondary {
+  background-color: #6c757d;
+  border: none;
+}
+.btn-secondary:hover {
+  background-color: #5a6268;
 }
 
-/* Tabla */
-.table {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.table thead th {
+/* 🔹 Tabla */
+.table-encabezado th {
   background-color: #00bcd4;
-  color: #001437;
-  font-weight: bold;
+  color: #000;
 }
-
-.table-hover tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.table td, .table th {
-  vertical-align: middle;
-}
-
-/* Botones dentro de tabla */
 .btn-editar {
-  background: #ffc107;
-  color: #001437;
+  background-color: #ffc107;
+  color: #000;
   border: none;
-  border-radius: 20px;
-  padding: 5px 12px;
-  transition: 0.3s;
 }
-
 .btn-editar:hover {
-  background: #e0a800;
-  color: white;
+  background-color: #e0a800;
 }
-
 .btn-eliminar {
-  background: #dc3545;
+  background-color: #dc3545;
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 5px 12px;
-  transition: 0.3s;
 }
-
 .btn-eliminar:hover {
-  background: #bb2d3b;
-}
-
-/* Responsivo */
-@media (max-width: 768px) {
-  .btn-volver, .btn-agregar {
-    font-size: 0.9rem;
-  }
+  background-color: #b02a37;
 }
