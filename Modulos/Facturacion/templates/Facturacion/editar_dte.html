@@ -1,0 +1,76 @@
+{% load static %}
+<div class="container-fluid p-4">
+  <h4 class="text-primary fw-bold mb-3">✏️ Editar Documento {{ dte.numero_control }}</h4>
+
+  <form id="formEditarDTE" method="post">
+    {% csrf_token %}
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Cliente</label>
+        <input type="text" name="cliente" class="form-control" value="{{ cliente.nombre }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Correo</label>
+        <input type="email" name="correo" class="form-control" value="{{ cliente.correo }}">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold">Dirección</label>
+      <input type="text" name="direccion" class="form-control" value="{{ cliente.direccion }}">
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">Condición de Pago</label>
+        <input type="text" name="condicion_pago" class="form-control" value="{{ dte.condicion_pago }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Estado</label>
+        <select name="estado" class="form-select">
+          <option value="Activo" {% if dte.estado == 'Activo' %}selected{% endif %}>Activo</option>
+          <option value="Anulado" {% if dte.estado == 'Anulado' %}selected{% endif %}>Anulado</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold">Total</label>
+        <input type="number" name="total" step="0.01" class="form-control" value="{{ dte.total }}">
+      </div>
+    </div>
+
+    <div class="text-end mt-4">
+      <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Guardar Cambios</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('formEditarDTE').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(this).entries());
+  const numeroControl = "{{ dte.numero_control }}";
+
+  const res = await fetch(`/dte/actualizar/${numeroControl}/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData)
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    alert("✅ Documento actualizado correctamente.");
+    // Cerrar el modal de edición
+    const modalDTE = bootstrap.Modal.getInstance(document.getElementById('modalDTE'));
+    modalDTE.hide();
+
+    // 🔁 Refrescar automáticamente la tabla principal sin recargar toda la página
+    const inputBuscar = document.getElementById('buscarDTE');
+    if (inputBuscar && inputBuscar.value.length >= 2) {
+      inputBuscar.dispatchEvent(new Event('keyup'));
+    }
+  } else {
+    alert("❌ Error al guardar: " + data.error);
+  }
+});
+</script>
+

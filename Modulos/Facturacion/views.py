@@ -4,20 +4,34 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.timezone import now
-import openpyxl
+from decimal import Decimal
 from openpyxl.styles import Alignment, Font, Border, Side
-from .models import DTE, Perfil, Cliente, Proveedor, Producto, Inventario
+import openpyxl
+from django.db import IntegrityError
+
+# Modelos y formularios
+from .models import DTE, Perfil, Cliente, Proveedor, Producto, Inventario, Compra
 from .forms import ClienteForm, ProveedorForm, ProductoForm
 from .permisos import rol_requerido
-from decimal import Decimal
-from django.db import IntegrityError
-from django.utils.timezone import now
-from .models import Compra
-from django.http import JsonResponse
+import uuid
+import io
+import base64
+import qrcode
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
-
+# 🔧 NUEVO - librerías para QR, UUID, base64 y utilidades
+import uuid
+import io
+import base64
+import qrcode
+import time
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
 
 
 # ======================================================
@@ -58,7 +72,6 @@ def registro(request):
             messages.error(request, "El nombre de usuario ya existe.")
         else:
             user = User.objects.create_user(username=username, password=password)
-            user.save()
             perfil = Perfil.objects.get(user=user)
             perfil.rol = rol
             perfil.save()
@@ -94,15 +107,17 @@ def crear_dte(request, tipo_dte=None):
         messages.warning(request, "Debes seleccionar un tipo de documento.")
         return redirect('menu_principal')
 
+    # 🔹 Ajuste de rutas (ya no existe carpeta forms)
     plantillas_dte = {
-        '01': 'Facturacion/forms/factura01.html',
-        '03': 'Facturacion/forms/ccf03.html',
-        '05': 'Facturacion/forms/notaCredito05.html',
-        '06': 'Facturacion/forms/notaDebito06.html',
-        '07': 'Facturacion/forms/retencion07.html',
-        '11': 'Facturacion/forms/liquidacion11.html',
+        '01': 'Facturacion/factura01.html',
+        '03': 'Facturacion/ccf03.html',
+        '05': 'Facturacion/notaCredito05.html',
+        '06': 'Facturacion/notaDebito06.html',
+        '07': 'Facturacion/retencion07.html',
+        '11': 'Facturacion/liquidacion11.html',
     }
-    template = plantillas_dte.get(tipo_dte, 'forms/factura01.html')
+
+    template = plantillas_dte.get(tipo_dte, 'Facturacion/factura01.html')
     return render(request, template, {'tipo_dte': tipo_dte})
 
 
@@ -117,14 +132,63 @@ def anular_dte(request, id):
 
 @rol_requerido(['Administrador', 'Contador'])
 def reporte_ventas(request):
-    dtes = DTE.objects.filter(estado='Activo')
+    dtes = DTE.objects.filter(estado='Activo').order_by('-fecha_emision')
     total_general = sum(d.total for d in dtes)
-    return render(request, 'Facturacion/ventas.html', {'dtes': dtes, 'total': total_general})
-
+    return render(request, 'Facturacion/ventas.html', {
+        'dtes': dtes,
+        'total': total_general
+    })
 
 @login_required
 def menu_facturacion(request):
+    """ Muestra menú general de facturación """
     return render(request, 'Facturacion/menu_facturacion.html')
+
+
+def nueva_factura(request, tipo):
+    """ Vista individual de factura tipo 01 """
+    dte = get_object_or_404(DTE, tipo_dte=tipo)
+    return render(request, 'Facturacion/factura01.html', {
+        'dte': dte,
+        'empresa': dte.empresa,
+        'cliente': dte.cliente
+    })
+
+from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
+import time
+
+@csrf_exempt
+@login_required
+def generar_dte(request, tipo):
+    """
+    Simula envío del DTE al Ministerio y envío por correo al cliente.
+    """
+    try:
+        dte = DTE.objects.filter(tipo_dte=tipo).last()
+        if not dte:
+            return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
+
+        # Simulación de envío al Ministerio
+        time.sleep(2)
+        dte.codigo_generacion = "MH-" + str(int(time.time()))
+        dte.sello_recepcion = "SELLO-" + str(int(time.time()))
+        dte.save()
+
+        # Envío de correo (simulado)
+        if dte.cliente and dte.cliente.correo:
+            send_mail(
+                subject="Comprobante Electrónico Aprobado",
+                message=f"Estimado {dte.cliente.nombre}, su documento {dte.get_tipo_dte_display()} ha sido aprobado por el Ministerio de Hacienda.",
+                from_email="facturacion@tusistema.com",
+                recipient_list=[dte.cliente.correo],
+                fail_silently=True,
+            )
+
+        return JsonResponse({'success': True})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 # ======================================================
@@ -138,7 +202,7 @@ def menu_catalogos(request):
 
 @rol_requerido(['Administrador', 'Empleado'])
 def lista_clientes(request):
-    clientes = Cliente.objects.all().order_by('-id')[:20]  # 🔹 20 registros más nuevos
+    clientes = Cliente.objects.all().order_by('-id')[:20]
     return render(request, 'Facturacion/clientes.html', {'clientes': clientes})
 
 
@@ -148,9 +212,8 @@ def crear_cliente(request):
         form = ClienteForm(request.POST)
         if form.is_valid():
             form.save()
-            return JsonResponse({'success': True})  # ✅ Para cerrar el modal
+            return JsonResponse({'success': True})
         return JsonResponse({'error': 'Formulario inválido'}, status=400)
-
     else:
         form = ClienteForm()
         return render(request, 'Facturacion/form_cliente.html', {'form': form})
@@ -179,7 +242,7 @@ def eliminar_cliente(request, id):
 
 
 # ======================================================
-# 🏢 PROVEEDORES (COMPLETO)
+# 🏢 PROVEEDORES
 # ======================================================
 
 @login_required
@@ -235,9 +298,6 @@ def lista_productos(request):
 
 @login_required
 def crear_producto(request):
-    """
-    Crea un nuevo producto en el catálogo base (para el modal).
-    """
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
@@ -248,13 +308,11 @@ def crear_producto(request):
             producto = form.save(commit=False)
             producto.inventario = 0
             producto.save()
-            return JsonResponse({'success': True})  # ✅ Cierra modal al guardar
+            return JsonResponse({'success': True})
         return JsonResponse({'error': 'Formulario inválido'}, status=400)
     else:
         form = ProductoForm()
         return render(request, 'Facturacion/form_producto.html', {'form': form})
-
-
 
 
 @login_required
@@ -275,19 +333,11 @@ def eliminar_producto(request, id):
 
 
 # ======================================================
-# 💰 REGISTRAR COMPRAS (Actualiza inventario y libro)
+# 💰 COMPRAS E INVENTARIO
 # ======================================================
-
-from django.http import JsonResponse
 
 @login_required
 def registrar_compra(request):
-    """
-    Registra una compra, actualiza inventario y genera el libro de compras.
-    Compatible con AJAX y uso normal.
-    """
-    print("👉 Headers recibidos:", request.headers)  # 👈 debug temporal
-
     if request.method == 'POST':
         try:
             producto_id = request.POST.get('producto')
@@ -297,12 +347,11 @@ def registrar_compra(request):
             producto = Producto.objects.get(id=producto_id)
             proveedor = Proveedor.objects.get(id=proveedor_id)
 
-            # 1️⃣ Calcular montos
             subtotal = producto.precio_unitario * Decimal(cantidad)
             iva_13 = subtotal * Decimal('0.13')
             total = subtotal + iva_13
 
-            # 2️⃣ Crear movimiento en Inventario
+            # Actualiza inventario
             Inventario.objects.create(
                 producto=producto,
                 tipo='Entrada',
@@ -310,7 +359,6 @@ def registrar_compra(request):
                 descripcion=f"Compra registrada de {proveedor.nombre}"
             )
 
-            # 3️⃣ Registrar compra
             Compra.objects.create(
                 fecha=now(),
                 comprobante_numero=f"COMP-{now().strftime('%Y%m%d%H%M%S')}",
@@ -321,7 +369,6 @@ def registrar_compra(request):
                 total=total
             )
 
-            # 4️⃣ Registrar DTE
             from .models import Empresa, Cliente
             empresa = Empresa.objects.first()
             cliente = Cliente.objects.first()
@@ -339,33 +386,22 @@ def registrar_compra(request):
                     fecha_emision=now()
                 )
 
-            # ✅ Si viene del modal (AJAX)
-            if (
-                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
-                request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
-            ):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': True,
                     'message': f"Compra registrada correctamente. Se añadieron {cantidad} unidades al inventario de '{producto.descripcion}'."
                 })
 
-            # ✅ Si es una petición normal
             messages.success(request, "✅ Compra registrada correctamente.")
             return redirect('inventario')
 
         except Exception as e:
             error_msg = f"Ocurrió un error al registrar la compra: {str(e)}"
-
-            if (
-                request.headers.get('x-requested-with') == 'XMLHttpRequest' or
-                request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
-            ):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'error': error_msg})
-
             messages.error(request, error_msg)
             return redirect('inventario')
 
-    # ✅ GET → mostrar formulario
     productos = Producto.objects.all().order_by('descripcion')
     proveedores = Proveedor.objects.all().order_by('nombre')
     return render(request, 'Facturacion/form_compra.html', {
@@ -373,17 +409,13 @@ def registrar_compra(request):
         'proveedores': proveedores
     })
 
+
 # ======================================================
 # 📘 LIBRO DE COMPRAS
 # ======================================================
 
 @login_required
 def libro_compras(request):
-    """
-    Muestra el libro de compras combinando los registros de DTE (tipo 03)
-    y las compras registradas directamente en el modelo Compra.
-    """
-    # ✅ Reúne los DTE activos tipo '03'
     dtes = DTE.objects.filter(tipo_dte='03', estado='Activo').order_by('-fecha_emision')
     compras_dte = []
     for dte in dtes:
@@ -402,8 +434,6 @@ def libro_compras(request):
             "total": float(dte.total),
         })
 
-    # ✅ Añade también las compras directas (modelo Compra)
-    compras_registro = Compra.objects.all().order_by('-fecha')
     compras_extra = [
         {
             "fecha": c.fecha.strftime("%d/%m/%Y"),
@@ -414,59 +444,10 @@ def libro_compras(request):
             "iva": float(c.iva_13),
             "total": float(c.total),
         }
-        for c in compras_registro
+        for c in Compra.objects.all().order_by('-fecha')
     ]
 
-    # ✅ Unifica todo
     compras = compras_dte + compras_extra
-
-    # ✅ Exportar a Excel
-    if 'exportar' in request.GET:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Libro de Compras"
-
-        negrita = Font(bold=True)
-        centrado = Alignment(horizontal="center", vertical="center")
-        borde = Border(left=Side(style='thin'), right=Side(style='thin'),
-                       top=Side(style='thin'), bottom=Side(style='thin'))
-
-        ws.merge_cells('A1:H1')
-        ws['A1'] = "LIBRO DE COMPRAS"
-        ws['A1'].font = Font(bold=True, size=14)
-        ws['A1'].alignment = centrado
-
-        encabezados = ["N°", "FECHA", "COMPROBANTE", "REGISTRO", "PROVEEDOR",
-                       "COMPRAS GRAVADAS", "IVA 13%", "TOTAL"]
-        ws.append(encabezados)
-
-        for cell in ws[2]:
-            cell.font = negrita
-            cell.alignment = centrado
-            cell.border = borde
-
-        for i, c in enumerate(compras, start=1):
-            ws.append([
-                i, c["fecha"], c["comprobante"], c["registro"], c["proveedor"],
-                c["gravadas"], c["iva"], c["total"]
-            ])
-
-        # Totales
-        total_gravadas = sum(c["gravadas"] for c in compras)
-        total_iva = sum(c["iva"] for c in compras)
-        total_total = sum(c["total"] for c in compras)
-        ws.append(["", "", "", "", "TOTALES", total_gravadas, total_iva, total_total])
-
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=8):
-            for cell in row:
-                cell.border = borde
-
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        response["Content-Disposition"] = f'attachment; filename=\"Libro_Compras_{now().strftime('%Y%m%d')}.xlsx\"'
-        wb.save(response)
-        return response
 
     return render(request, 'Facturacion/libro_compras.html', {'compras': compras})
 
@@ -491,43 +472,6 @@ def libro_ventas(request):
         for dte in dtes
     ]
 
-    if 'exportar' in request.GET:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Libro de Ventas"
-
-        negrita = Font(bold=True)
-        centrado = Alignment(horizontal="center", vertical="center")
-        borde = Border(left=Side(style='thin'), right=Side(style='thin'),
-                       top=Side(style='thin'), bottom=Side(style='thin'))
-
-        ws.merge_cells('A1:G1')
-        ws['A1'] = "LIBRO DE VENTAS"
-        ws['A1'].font = Font(bold=True, size=14)
-        ws['A1'].alignment = centrado
-
-        encabezados = ["N°", "FECHA", "DOCUMENTO", "CLIENTE",
-                       "VENTAS GRAVADAS", "IVA 13%", "TOTAL"]
-        ws.append(encabezados)
-
-        for cell in ws[2]:
-            cell.font = negrita
-            cell.alignment = centrado
-            cell.border = borde
-
-        for i, v in enumerate(ventas, start=1):
-            ws.append([
-                i, v["fecha"], v["numero"], v["cliente"],
-                v["subtotal"], v["iva"], v["total"]
-            ])
-
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        response["Content-Disposition"] = f'attachment; filename="Libro_Ventas_{now().strftime("%Y%m%d")}.xlsx"'
-        wb.save(response)
-        return response
-
     return render(request, 'Facturacion/libro_ventas.html', {'ventas': ventas})
 
 
@@ -539,3 +483,297 @@ def libro_ventas(request):
 def lista_usuarios(request):
     usuarios = User.objects.all().select_related('perfil')
     return render(request, 'Facturacion/usuarios.html', {'usuarios': usuarios})
+
+def _generar_numero_control(tipo):
+    """Genera un número de control ficticio único."""
+    return f"DTE-{tipo}-" + uuid.uuid4().hex[:8].upper()
+
+
+def _generar_qr_datauri(text):
+    """Genera un QR embebido en formato base64."""
+    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(text)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    bio = io.BytesIO()
+    img.save(bio, format="PNG")
+    return f"data:image/png;base64,{base64.b64encode(bio.getvalue()).decode()}"
+
+@csrf_exempt
+@login_required
+def modal_dte(request, tipo):
+    """Crea y carga el DTE con datos del catálogo (producto, cliente, totales)"""
+    from .models import Empresa, Cliente, DTE
+    from django.utils import timezone
+
+    empresa = Empresa.objects.first()
+    if not empresa:
+        empresa = Empresa.objects.create(
+            nombre="Omnigest S.A. de C.V.",
+            nit="0614-240325-001-1",
+            nrc="123456-7",
+            direccion="San Salvador Centro frente a Salvador del Mundo",
+            telefono="2290-9444",
+            correo="info@omnigest.com",
+            representante_legal="Sucursal Salvador del Mundo"
+        )
+
+    cliente = Cliente.objects.first()
+    producto = None
+
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        venta = data.get('producto', {})
+        cliente_id = data.get('clienteId')
+        nuevo_cliente = data.get('nuevoCliente')
+
+        # Buscar o crear cliente
+        if cliente_id:
+            cliente = Cliente.objects.filter(id=cliente_id).first()
+        elif nuevo_cliente:
+            cliente = Cliente.objects.create(
+                nombre=nuevo_cliente,
+                correo=data.get('correo', ''),
+                direccion=data.get('direccion', '')
+            )
+
+        if venta:
+            producto = {
+                'nombre': venta.get('nombre'),
+                'cantidad': venta.get('cantidad'),
+                'precio': venta.get('precio'),
+                'subtotal': venta.get('subtotal'),
+                'iva': venta.get('iva'),
+                'total': venta.get('total'),
+            }
+
+    dte = DTE.objects.create(
+        empresa=empresa,
+        cliente=cliente,
+        tipo_dte=tipo,
+        numero_control=f"DTE-{tipo}-{uuid.uuid4().hex[:8].upper()}",
+        fecha_emision=timezone.now(),
+        condicion_pago="Contado",
+        subtotal=producto['subtotal'] if producto else 0,
+        iva=producto['iva'] if producto else 0,
+        total=producto['total'] if producto else 0,
+        codigo_generacion="(Asignado por MH)",
+        sello_recepcion="(Pendiente)",
+        estado="Activo"
+    )
+
+    plantillas_dte = {
+        '01': 'Facturacion/factura01.html',
+        '03': 'Facturacion/ccf03.html',
+        '05': 'Facturacion/notaCredito05.html',
+        '06': 'Facturacion/notaDebito06.html',
+        '07': 'Facturacion/retencion07.html',
+        '11': 'Facturacion/liquidacion11.html',
+    }
+
+    return render(request, plantillas_dte.get(tipo, 'Facturacion/factura01.html'), {
+        'tipo_dte': tipo,
+        'dte': dte,
+        'empresa': empresa,
+        'cliente': cliente,
+        'producto': producto
+    })
+
+@login_required
+def ver_dte(request, dte_id):
+    """
+    Muestra el DTE individual (por ejemplo, cuando se abre desde el QR).
+    """
+    dte = get_object_or_404(DTE, id=dte_id)
+    empresa = dte.empresa
+    cliente = dte.cliente
+
+    # Generar nuevamente el QR para mostrarlo en pantalla
+    qr_text = f"{dte.numero_control}|{empresa.nit}|{cliente.nit}|{dte.total:.2f}"
+    qr_data = _generar_qr_datauri(qr_text)
+
+    # Plantilla según tipo de documento
+    plantillas_dte = {
+        '01': 'Facturacion/factura01.html',
+        '03': 'Facturacion/ccf03.html',
+        '05': 'Facturacion/notaCredito05.html',
+        '06': 'Facturacion/notaDebito06.html',
+        '07': 'Facturacion/retencion07.html',
+        '11': 'Facturacion/liquidacion11.html',
+    }
+    template = plantillas_dte.get(dte.tipo_dte, 'Facturacion/ccf03.html')
+
+    return render(request, template, {
+        'dte': dte,
+        'empresa': empresa,
+        'cliente': cliente,
+        'qr_data': qr_data
+    })
+
+@login_required
+def buscar_dte(request):
+    """Filtra DTE por cliente o número de control."""
+    query = request.GET.get('q', '').strip()
+    resultados = []
+
+    if len(query) >= 2:
+        dtes = DTE.objects.filter(
+            Q(numero_control__icontains=query) |
+            Q(codigo_generacion__icontains=query) |
+            Q(cliente__nombre__icontains=query)
+        ).select_related('cliente').order_by('-fecha_emision')[:15]
+
+        resultados = [{
+            'tipo_dte': dte.get_tipo_dte_display(),
+            'numero_control': dte.numero_control,
+            'cliente': dte.cliente.nombre if dte.cliente else 'N/A',
+            'fecha': dte.fecha_emision.strftime("%d/%m/%Y %H:%M"),
+            'total': f"{dte.total:.2f}",
+            'estado': dte.estado
+        } for dte in dtes]
+
+    return JsonResponse({'resultados': resultados})
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth import authenticate
+from .models import Perfil
+import json
+
+@csrf_exempt
+def validar_admin(request):
+    """
+    Valida las credenciales de un usuario con rol 'Administrador'.
+    Compatible con el modelo Perfil.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+
+        user = authenticate(username=username, password=password)
+        if not user:
+            return JsonResponse({'success': False, 'error': 'Usuario o contraseña incorrectos'})
+
+        perfil = Perfil.objects.filter(user=user).first()
+        if not perfil:
+            return JsonResponse({'success': False, 'error': 'El usuario no tiene perfil asignado'})
+
+        if perfil.rol.lower() == 'administrador':
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': 'No tiene permisos de administrador'})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def editar_dte(request, numero_control):
+    """
+    Carga el DTE para edición (solo si usuario tiene permisos de administrador).
+    """
+    from .models import Empresa, Cliente, DTE, DetalleDTE
+
+    dte = get_object_or_404(DTE, numero_control=numero_control)
+    detalles = dte.detalles.all()
+
+    if request.method == 'POST':
+        # Actualiza los campos
+        dte.cliente.nombre = request.POST.get('cliente', dte.cliente.nombre)
+        dte.cliente.direccion = request.POST.get('direccion', dte.cliente.direccion)
+        dte.cliente.correo = request.POST.get('correo', dte.cliente.correo)
+        dte.cliente.save()
+
+        dte.condicion_pago = request.POST.get('condicion_pago', dte.condicion_pago)
+        dte.estado = request.POST.get('estado', dte.estado)
+        dte.total = request.POST.get('total', dte.total)
+        dte.save()
+
+        messages.success(request, "✅ Documento actualizado correctamente.")
+        return JsonResponse({'success': True})
+
+    return render(request, 'Facturacion/editar_dte.html', {
+        'dte': dte,
+        'empresa': dte.empresa,
+        'cliente': dte.cliente,
+        'detalles': detalles,
+    })
+
+@csrf_exempt
+@login_required
+def actualizar_dte(request, numero_control):
+    """
+    Actualiza un DTE y recalcula totales para reflejarlo en reportes y libros.
+    """
+    from .models import DTE, DetalleDTE
+    import json
+
+    try:
+        dte = DTE.objects.filter(numero_control=numero_control).select_related('cliente', 'empresa').first()
+        if not dte:
+            return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
+
+        data = json.loads(request.body.decode('utf-8'))
+
+        # 🔹 Actualizar campos básicos (solo si vienen en el request)
+        if 'estado' in data:
+            dte.estado = data['estado']
+        if 'condicion_pago' in data:
+            dte.condicion_pago = data['condicion_pago']
+        if 'total' in data:
+            try:
+                dte.total = Decimal(str(data['total'])).quantize(Decimal('0.01'))
+            except Exception:
+                dte.total = Decimal('0.00')
+
+        # 🔹 Actualizar cliente si cambió
+        if 'cliente' in data:
+            dte.cliente.nombre = data['cliente']
+        if 'correo' in data:
+            dte.cliente.correo = data['correo']
+        if 'direccion' in data:
+            dte.cliente.direccion = data['direccion']
+        dte.cliente.save()
+
+        # 🔹 Recalcular subtotal e IVA
+        if hasattr(dte, 'detalles') and dte.detalles.exists():
+            subtotal = sum(Decimal(det.total_item) for det in dte.detalles.all())
+        else:
+            subtotal = (dte.total / Decimal('1.13')).quantize(Decimal('0.01'))
+
+        iva = (subtotal * Decimal('0.13')).quantize(Decimal('0.01'))
+        dte.subtotal = subtotal
+        dte.iva = iva
+        dte.total = subtotal + iva
+        dte.fecha_emision = timezone.now()
+        dte.save()
+
+        # 🔹 Respuesta de confirmación
+        return JsonResponse({
+            'success': True,
+            'msg': '✅ Documento actualizado y sincronizado correctamente.',
+            'total': f"{dte.total:.2f}",
+            'iva': f"{dte.iva:.2f}",
+            'subtotal': f"{dte.subtotal:.2f}"
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def catalogo_productos(request):
+    """
+    Muestra los productos en stock, permite seleccionar cantidad, cliente y generar un DTE.
+    """
+    from .models import Producto, Cliente
+    productos = Producto.objects.all().order_by('descripcion')
+    clientes = Cliente.objects.all().order_by('nombre')
+    return render(request, 'Facturacion/catalogo_productos.html', {
+        'productos': productos,
+        'clientes': clientes
+    })
+
+
+
+
+

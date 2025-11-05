@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante de Crédito Fiscal (03)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/ccf.css' %}">
+</head>
+<body>
+
+<div class="factura-container">
+
+  <!-- ENCABEZADO -->
+  <div class="row encabezado">
+    <div class="col-6 logo-empresa">
+      <!-- Logo Omnigest: coloca omnigest.png en static/img/omnigest.png -->
+      <img src="{% static 'img/omnigest.png' %}" alt="Omnigest" class="logo">
+      <p class="empresa-nombre">Omnigest S.A. de C.V.</p>
+      <p class="empresa-info">
+        VENTA AL POR MAYOR DE ARTÍCULOS DE FERRETERÍA Y PINTURERÍAS<br>
+        NIT: 0623-123456-1-9 &nbsp;&nbsp; NRC: 000000-0<br>
+        San Salvador Centro frente a Salvador del Mundo<br>
+        Tel: {{ empresa.telefono|default:'2290-9444' }} &nbsp;&nbsp; {{ empresa.correo|default:'info@omnigest.com' }}
+      </p>
+      <p class="sucursal"><strong>SUCURSAL:</strong> Salvador del Mundo</p>
+    </div>
+
+    <div class="col-6 datos-dte">
+      <h5>Documento Tributario Electrónico</h5>
+      <h6>COMPROBANTE DE CRÉDITO FISCAL</h6>
+      <p><strong>Código de generación:</strong> {{ dte.codigo_generacion|default:"(Asignado por MH)" }}</p>
+      <p><strong>Número de control del DTE:</strong> {{ dte.numero_control }}</p>
+      <p><strong>Sello de recepción:</strong> {{ dte.sello_recepcion|default:"(Asignado por MH)" }}</p>
+      <p><strong>Tipo de transmisión:</strong> NORMAL</p>
+      <p><strong>Modelo Facturación:</strong> PREVIO</p>
+      <p><strong>Fecha y hora:</strong> {{ dte.fecha_emision|date:"d/m/Y H:i" }}</p>
+      <p><strong>Moneda:</strong> USD</p>
+
+      <!-- QR -->
+      {% if qr_data %}
+        <div style="margin-top:8px; text-align:center;">
+          <img src="{{ qr_data }}" alt="QR" style="width:120px; height:120px; border:1px solid #ccc; padding:4px; background:white;">
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- CLIENTE (se rellena automaticamente desde dte.cliente) -->
+  <div class="row cliente-info mt-2">
+    <div class="col-6">
+      <p><strong>Cliente:</strong> {{ cliente.nombre }}</p>
+      <p><strong>Actividad económica:</strong> {{ cliente.actividad_economica|default:"-" }}</p>
+      <p><strong>Dirección:</strong> {{ cliente.direccion }}</p>
+      <p><strong>NIT:</strong> {{ cliente.nit }} &nbsp;&nbsp; <strong>NRC:</strong> {{ cliente.nrc }}</p>
+      <p><strong>Correo:</strong> {{ cliente.correo }}</p>
+    </div>
+    <div class="col-6">
+      <p><strong>Condición:</strong> {{ dte.condicion_pago }}</p>
+      <p><strong>Caja:</strong> 222 &nbsp;&nbsp; <strong>Tipo venta:</strong> NORMAL</p>
+      <p><strong>Operador:</strong> {{ request.user.get_full_name }}</p>
+      <p><strong>Vendedor:</strong> {{ empresa.representante_legal|default:"-" }}</p>
+    </div>
+  </div>
+
+  <!-- DETALLE (se rellena a partir de dte.detalles) -->
+  <table class="tabla-detalle mt-3">
+    <thead>
+      <tr>
+        <th>#</th><th>Código</th><th>Unidad</th><th>Cantidad</th><th>Descripción</th><th>Precio Unitario</th><th>Ventas Gravadas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for det in dte.detalles.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ det.producto.codigo }}</td>
+        <td>{{ det.producto.unidad_medida }}</td>
+        <td class="text-end">{{ det.cantidad }}</td>
+        <td>{{ det.producto.descripcion }}</td>
+        <td class="text-end">${{ det.precio_unitario }}</td>
+        <td class="text-end">${{ det.total_item }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center text-muted">No hay productos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- TOTALES -->
+  <div class="row totales mt-3">
+    <div class="col-6 notas">
+      <p><strong>Notas:</strong></p>
+      <p class="texto-nota">Nuestros productos están 100% garantizados. Consulte su certificado en la tienda.</p>
+      <p><strong>Cantidad en letras:</strong> {{ dte.total|floatformat:2 }} dólares</p>
+    </div>
+    <div class="col-6 resumen text-end">
+      <div class="resumen" style="display:inline-block; min-width:220px; text-align:left;">
+        <p><strong>Sumas de ventas:</strong> ${{ dte.subtotal }}</p>
+        <p><strong>IVA (13%):</strong> ${{ dte.iva }}</p>
+        <p class="total"><strong>TOTAL A PAGAR:</strong> ${{ dte.total }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIE -->
+  <div class="footer mt-3">
+    <p>Omnigest S.A. de C.V. — www.omnigest.com</p>
+    <p>Tel: 2290-9444 | Email: info@omnigest.com</p>
+  </div>
+
+  <!-- BOTÓN GENERAR (si deseas activarlo más tarde con JS) -->
+  <div class="text-center mt-4">
+    <button id="btnGenerar" class="btn btn-primary px-4" disabled>Generar y Enviar</button>
+    <p class="text-muted mt-2" style="font-size: 12px;">(Simulación deshabilitada en esta versión)</p>
+  </div>
+
+</div>
+
+</body>
+</html>

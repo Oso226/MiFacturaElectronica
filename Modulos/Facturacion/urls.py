@@ -22,8 +22,7 @@ urlpatterns = [
     path('inventario/', views.inventario, name='inventario'),
     path('productos/eliminar/<int:id>/', views.eliminar_producto, name='eliminar_producto'),
     path('compras/registrar/', views.registrar_compra, name='registrar_compra'),
-
-
+    path('catalogo/', views.catalogo_productos, name='catalogo_productos'),
 
     # Facturación
     path('menu/facturacion/', views.menu_facturacion, name='menu_facturacion'),
@@ -31,6 +30,14 @@ urlpatterns = [
     path('dte/crear/', views.crear_dte, name='crear_dte'),
     path('dte/nuevo/<str:tipo_dte>/', views.crear_dte, name='crear_dte_tipo'),
     path('clientes/nuevo/', views.crear_cliente, name='crear_cliente'),
+    path('dte/modal/<str:tipo>/', views.modal_dte, name='modal_dte'),
+    path('dte/generar/<str:tipo>/', views.generar_dte, name='generar_dte'),
+    path('dte/ver/<int:dte_id>/', views.ver_dte, name='ver_dte'),
+    path('dte/buscar/', views.buscar_dte, name='buscar_dte'),
+    path('auth/validar-admin/', views.validar_admin, name='validar_admin'),
+    path('dte/editar/<str:numero_control>/', views.editar_dte, name='editar_dte'),
+    path('dte/actualizar/<str:numero_control>/', views.actualizar_dte, name='actualizar_dte'),
+
     # Formularios nuevos
     path('clientes/', views.lista_clientes, name='lista_clientes'),
     path('clientes/crear/', views.crear_cliente, name='crear_cliente'),
@@ -44,6 +51,9 @@ urlpatterns = [
 
     # Administración
     path('usuarios/', views.lista_usuarios, name='usuarios'),
+
+
+    path('generar-dte/<str:tipo>/', views.generar_dte, name='generar_dte'),
 
 ]
 

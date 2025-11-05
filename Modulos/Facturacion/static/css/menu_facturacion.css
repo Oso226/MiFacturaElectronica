@@ -1,0 +1,148 @@
+/* =============================================
+   ESTILOS - MENÚ DE FACTURACIÓN OMNIGEST
+   ============================================= */
+
+/* Fondo principal celeste */
+.fondo-facturacion {
+    background-color: #0dadfd; /* celeste institucional */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 10px;
+}
+
+/* Contenedor principal blanco */
+.contenedor-facturacion {
+    background-color: #ffffff;
+    border-radius: 15px;
+    max-width: 1100px;
+    width: 100%;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Título */
+.contenedor-facturacion h2 {
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+/* Buscador */
+.buscador-container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.input-group-text {
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    font-size: 1.2rem;
+}
+
+#buscarDTE {
+    border: 2px solid #0d6efd;
+    font-size: 1rem;
+    padding: 0.6rem;
+    transition: all 0.3s ease-in-out;
+}
+
+#buscarDTE:focus {
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+    border-color: #0b5ed7;
+}
+
+/* =============================================
+   TABLA DE RESULTADOS
+   ============================================= */
+.tabla-dte {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+/* Encabezado negro */
+.tabla-dte thead th {
+    background-color: #000000; /* negro elegante */
+    color: #ffffff;
+    font-weight: 600;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+/* Celdas */
+.tabla-dte td {
+    font-size: 0.95rem;
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Hover de fila */
+.tabla-dte tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+    transition: 0.2s;
+}
+
+/* Botón de editar */
+.btn-editar {
+    background-color: #ffc107;
+    color: #000;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.btn-editar:hover {
+    background-color: #ffca2c;
+}
+
+/* Si el usuario no es administrador */
+.btn-editar:disabled {
+    background-color: #d3d3d3;
+    color: #777;
+    cursor: not-allowed;
+    border: none;
+}
+
+/* =============================================
+   BOTONES Y PIE
+   ============================================= */
+
+/* Botón volver */
+.btn-outline-light {
+    color: white;
+    border-color: white;
+    transition: 0.3s;
+}
+
+.btn-outline-light:hover {
+    background-color: white;
+    color: #0d6efd;
+}
+
+/* Modal de autenticación */
+#modalAdmin .modal-content {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#modalAdmin .modal-header {
+    border-bottom: none;
+}
+
+#modalAdmin .form-control {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+#modalAdmin .btn-dark {
+    background-color: #000;
+    border: none;
+    transition: 0.3s;
+}
+
+#modalAdmin .btn-dark:hover {
+    background-color: #222;
+}

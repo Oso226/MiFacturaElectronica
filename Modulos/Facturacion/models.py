@@ -176,3 +176,18 @@ class Compra(models.Model):
 
     def __str__(self):
         return f"{self.proveedor} - {self.fecha.strftime('%d/%m/%Y')}"
+# ======================================================
+# 🛒 CATÁLOGO DE PRODUCTOS / STOCK
+# ======================================================
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def catalogo_productos(request):
+    """
+    Muestra los productos con su imagen, descripción y botón 'Vender'.
+    """
+    from .models import Producto
+    productos = Producto.objects.all().order_by('descripcion')
+    return render(request, 'Facturacion/catalogo_productos.html', {'productos': productos})
+

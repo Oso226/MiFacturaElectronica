@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ EN DOS FILAS (SOLO SEPARACIÓN HORIZONTAL AJUSTADA)
+   OMNIGEST - MENÚ PRINCIPAL AJUSTADO
    =========================== */
 
 body {
@@ -34,7 +34,7 @@ body {
   z-index: 1;
 }
 
-/* 🔹 Encabezado (texto superior) */
+/* Encabezado */
 .header {
   position: relative;
   z-index: 2;
@@ -53,21 +53,30 @@ body {
   font-size: 1.1rem;
 }
 
-/* 🔹 Contenedor de tarjetas */
+/* Contenedor principal */
 .menu-opciones {
   position: relative;
   z-index: 2;
-  margin-top: 80px; /* espacio superior para dejar visible el logo */
+  margin-top: 70px;
 }
 
-/* 🔹 Fila de tarjetas */
-.menu-opciones .row {
-  margin-bottom: 80px; /* espacio vertical entre filas */
+/* 🔹 Fila superior e inferior */
+.fila-superior,
+.fila-inferior {
+  display: flex;
   justify-content: center;
-  gap: 400px; /* 🔹 aumenta la separación horizontal entre los pares */
+  gap: 200px;
+  margin-bottom: 50px;
 }
 
-/* 🔹 Tarjetas */
+/* 🔹 Fila central (tarjeta única centrada) */
+.fila-central {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 60px;
+}
+
+/* Tarjetas */
 .menu-card {
   background-color: rgba(0, 188, 212, 0.88);
   border: none;
@@ -78,6 +87,8 @@ body {
   box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
   padding: 20px;
   width: 300px;
+  height: 200px;
+  text-align: center;
 }
 
 .menu-card:hover {
@@ -99,7 +110,7 @@ body {
   font-weight: 600;
 }
 
-/* 🔹 Botones internos */
+/* Botón */
 .btn-info {
   background-color: white;
   border: none;
@@ -117,7 +128,7 @@ body {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.9);
 }
 
-/* 🔹 Botón de cerrar sesión */
+/* Botón cerrar sesión */
 .btn-cerrar {
   position: absolute;
   top: 25px;
@@ -138,9 +149,3 @@ body {
   color: #001437;
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
 }
-/* 🔹 Mueve solo las tarjetas del lado derecho */
-.menu-opciones .row .col-md-3:nth-child(2),
-.menu-opciones .row .col-md-3:nth-child(4) {
-  margin-left: 300px; /* ajusta el valor según cuánto quieras mover */
-}
-

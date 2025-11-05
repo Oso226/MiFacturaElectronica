@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock de Productos | OMNIGEST</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-primary">📦 Stock de Productos</h2>
+    <a href="{% url 'menu_principal' %}" class="btn btn-secondary">← Volver al Menú</a>
+  </div>
+
+  <div class="row g-4">
+    {% for producto in productos %}
+    <div class="col-md-4 col-lg-3">
+      <div class="card h-100 shadow-sm border-0">
+        <img src="{{ producto.imagen.url|default:'/static/img/sin_imagen.png' }}" 
+             class="card-img-top" style="height: 180px; object-fit: cover;">
+        <div class="card-body text-center">
+          <h5 class="card-title text-primary fw-bold">{{ producto.descripcion }}</h5>
+          <p class="text-muted small mb-1">Código: {{ producto.codigo }}</p>
+          <p class="fw-bold text-success fs-5">${{ producto.precio_unitario }}</p>
+
+          <div class="mb-2">
+            <label for="cantidad_{{ producto.id }}" class="form-label small">Cantidad</label>
+            <input type="number" min="1" value="1" class="form-control text-center cantidad" 
+                   id="cantidad_{{ producto.id }}" data-precio="{{ producto.precio_unitario }}">
+          </div>
+
+          <p class="text-muted">Existencias: 
+            {% if producto.inventario > 10 %}
+              <span class="badge bg-success">{{ producto.inventario }}</span>
+            {% elif producto.inventario > 0 %}
+              <span class="badge bg-warning text-dark">{{ producto.inventario }}</span>
+            {% else %}
+              <span class="badge bg-danger">Agotado</span>
+            {% endif %}
+          </p>
+        </div>
+        <div class="card-footer bg-white text-center">
+          {% if producto.inventario > 0 %}
+          <button class="btn btn-outline-primary w-100 btn-vender" 
+                  data-id="{{ producto.id }}" 
+                  data-nombre="{{ producto.descripcion }}" 
+                  data-precio="{{ producto.precio_unitario }}">
+            🛒 Vender
+          </button>
+          {% else %}
+          <button class="btn btn-secondary w-100" disabled>Sin stock</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal Cliente y Confirmación -->
+<div class="modal fade" id="modalVenta" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">🧾 Datos de la Venta</h5>
+        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formVenta">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente Existente</label>
+              <select class="form-select" id="clienteExistente">
+                <option value="">-- Seleccionar cliente --</option>
+                {% for c in clientes %}
+                <option value="{{ c.id }}">{{ c.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">O Registrar Nuevo</label>
+              <input type="text" id="nuevoCliente" class="form-control" placeholder="Nombre del nuevo cliente">
+            </div>
+          </div>
+
+          <div id="datosClienteNuevo" class="d-none">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <input type="text" id="correoCliente" class="form-control" placeholder="Correo electrónico">
+              </div>
+              <div class="col-md-6">
+                <input type="text" id="direccionCliente" class="form-control" placeholder="Dirección">
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <h5 class="fw-bold text-primary">Producto Seleccionado</h5>
+          <p class="mb-1">Descripción: <span id="productoVenta"></span></p>
+          <p class="mb-1">Precio Unitario: <span id="precioVenta"></span></p>
+          <p class="mb-1">Cantidad: <span id="cantidadVenta"></span></p>
+          <p class="fw-bold">Total con IVA: <span id="totalVenta"></span></p>
+
+          <div class="text-end mt-4">
+            <button type="button" id="btnConfirmarVenta" class="btn btn-success px-4">Confirmar y Emitir</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let productoSeleccionado = {};
+
+  document.querySelectorAll('.btn-vender').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const nombre = btn.dataset.nombre;
+      const precio = parseFloat(btn.dataset.precio);
+      const cantidad = parseInt(document.getElementById(`cantidad_${id}`).value);
+
+      const subtotal = cantidad * precio;
+      const iva = subtotal * 0.13;
+      const total = subtotal + iva;
+
+      productoSeleccionado = { id, nombre, precio, cantidad, subtotal, iva, total };
+
+      document.getElementById('productoVenta').textContent = nombre;
+      document.getElementById('precioVenta').textContent = `$${precio.toFixed(2)}`;
+      document.getElementById('cantidadVenta').textContent = cantidad;
+      document.getElementById('totalVenta').textContent = `$${total.toFixed(2)}`;
+
+      new bootstrap.Modal(document.getElementById('modalVenta')).show();
+    });
+  });
+
+  // Mostrar campos para nuevo cliente
+  document.getElementById('nuevoCliente').addEventListener('input', e => {
+    const datos = document.getElementById('datosClienteNuevo');
+    datos.classList.toggle('d-none', e.target.value.trim() === '');
+  });
+
+  // Confirmar venta y redirigir
+  document.getElementById('btnConfirmarVenta').addEventListener('click', () => {
+    const clienteExistente = document.getElementById('clienteExistente').value;
+    const nuevoCliente = document.getElementById('nuevoCliente').value.trim();
+
+    if (!clienteExistente && !nuevoCliente) {
+      alert("⚠️ Debe seleccionar o registrar un cliente.");
+      return;
+    }
+
+    // Guardar info en sessionStorage
+    sessionStorage.setItem('ventaCompleta', JSON.stringify({
+      producto: productoSeleccionado,
+      clienteId: clienteExistente || null,
+      nuevoCliente: nuevoCliente || null,
+      correo: document.getElementById('correoCliente').value.trim(),
+      direccion: document.getElementById('direccionCliente').value.trim()
+    }));
+
+    window.location.href = "{% url 'menu_facturacion' %}";
+  });
+});
+</script>
+
+</body>
+</html>

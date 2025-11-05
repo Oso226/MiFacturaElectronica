@@ -1,0 +1,165 @@
+/* ============================================
+   NOTA DE CRÉDITO (05)
+   ============================================ */
+
+.factura-container {
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    background-color: white;
+    padding: 15px 25px;
+    border: 1px solid #ccc;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    color: #000;
+}
+
+/* ===== ENCABEZADO ===== */
+.encabezado {
+    border-bottom: 2px solid #0c63e4;
+    margin-bottom: 10px;
+}
+
+.logo-empresa .logo {
+    height: 45px;
+    margin-bottom: 6px;
+}
+
+.logo-empresa {
+    color: #004b9a;
+    font-weight: 500;
+}
+
+.empresa-nombre {
+    font-weight: bold;
+    font-size: 15px;
+    color: #004b9a;
+}
+
+.empresa-info {
+    font-size: 11.5px;
+    line-height: 1.3;
+}
+
+.sucursal {
+    font-size: 11px;
+    color: #444;
+}
+
+/* ===== BLOQUE DERECHO AZUL ===== */
+.datos-dte {
+    background-color: #e7f1ff;
+    border: 1px solid #0c63e4;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 11.5px;
+    line-height: 1.3;
+}
+
+.datos-dte h5 {
+    color: #0c63e4;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.datos-dte h6 {
+    color: #003366;
+    font-weight: bold;
+    margin-top: 0;
+}
+
+/* ===== CLIENTE ===== */
+.cliente-info {
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* ===== TABLA ===== */
+.tabla-detalle {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-detalle th, .tabla-detalle td {
+    border: 1px solid #999;
+    padding: 4px;
+    vertical-align: middle;
+}
+
+.tabla-detalle th {
+    background-color: #d6e4f3;
+    color: #003366;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* ===== TOTALES ===== */
+.totales {
+    border-top: 2px solid #f57c00;
+    padding-top: 10px;
+}
+
+.totales .resumen {
+    background-color: #fff8e1;
+    border: 1px solid #f57c00;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.totales .total {
+    font-size: 14px;
+    font-weight: bold;
+    color: #d84315;
+}
+
+/* ===== PIE ===== */
+.footer {
+    text-align: center;
+    font-size: 11px;
+    color: #555;
+    border-top: 1px solid #aaa;
+    margin-top: 20px;
+    padding-top: 5px;
+}
+
+/* ============================================
+   MODAL CENTRADO Y SCROLL COMPLETO
+   ============================================ */
+
+.modal.show {
+    display: flex !important;
+    justify-content: center;
+    align-items: flex-start;
+    background: rgba(0, 0, 0, 0.45);
+    overflow-y: auto !important;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+.modal-dialog {
+    margin: 0 auto !important;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    max-width: 210mm !important;
+    width: 100%;
+}
+
+.modal-content {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.modal-body {
+    display: flex;
+    justify-content: center;
+    padding: 0 !important;
+    background: #fff !important;
+    width: 210mm !important;
+    border: 1px solid #ccc;
+}
