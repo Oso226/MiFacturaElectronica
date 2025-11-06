@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante Electrónico</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; color: #333; margin: 0; padding: 0; }
+    .container { background: #fff; margin: 20px auto; padding: 20px 30px; max-width: 600px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { color: #0056b3; border-bottom: 2px solid #0056b3; padding-bottom: 5px; }
+    p { font-size: 15px; line-height: 1.6; }
+    .resumen { background: #eef5ff; padding: 10px 15px; border-radius: 6px; margin: 10px 0; }
+    .footer { font-size: 13px; color: #777; margin-top: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📄 Comprobante Electrónico</h2>
+    <p>Estimado(a) {{ cliente }},</p>
+    <p>Gracias por su compra. A continuación encontrará el resumen de su {{ tipo_dte }}:</p>
+
+    <div class="resumen">
+      <p><strong>Producto:</strong> {{ producto }}</p>
+      <p><strong>Total:</strong> ${{ total }}</p>
+    </div>
+
+    <p>Adjuntos a este correo encontrará:</p>
+    <ul>
+      <li>📎 Archivo PDF con la factura electrónica.</li>
+      <li>💾 Archivo JSON con los datos estructurados del comprobante.</li>
+    </ul>
+
+    <p>Atentamente,</p>
+    <p><strong>Omnigest S.A. de C.V.</strong><br>
+    Tel: 2290-9444<br>
+    Correo: <a href="mailto:info@omnigest.com">info@omnigest.com</a></p>
+
+    <div class="footer">
+      © {{ year|default:"2025" }} Omnigest — Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>

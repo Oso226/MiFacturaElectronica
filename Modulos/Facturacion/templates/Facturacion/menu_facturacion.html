@@ -56,7 +56,7 @@
     </div>
 
     <div class="text-center mt-5">
-      <a href="{% url 'menu_principal' %}" class="btn btn-outline-light">← Volver al Menú Principal</a>
+      <a href="{% url 'menu_principal' %}" class="btn btn-outline-primary">← Volver al Menú Principal</a>
     </div>
   </div>
 </div>
@@ -64,37 +64,47 @@
 <!-- Modal DTE -->
 <div class="modal fade" id="modalDTE" tabindex="-1" aria-labelledby="modalDTELabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content p-0 border-0 shadow-none">
+    <div class="modal-content p-0 border-0 shadow-none bg-white">
       <div class="modal-body p-0" id="contenidoDTE" style="max-height: 90vh; overflow-y: auto;"></div>
     </div>
   </div>
 </div>
 
-<!-- Modal de autenticación -->
-<div class="modal fade" id="modalAdmin" tabindex="-1" aria-labelledby="modalAdminLabel" aria-hidden="true">
+<!-- Modal de envío de correo -->
+<div class="modal fade" id="modalEnvioCorreo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title">🔐 Autenticación requerida</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content text-center p-4 bg-white shadow">
+      <div id="estadoEnvio">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="mb-2 text-primary">Enviando comprobante al cliente...</h5>
       </div>
-      <div class="modal-body">
-        <p class="mb-3 text-muted">Ingrese credenciales de administrador para continuar.</p>
-        <form id="formAdminAuth">
-          <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <input type="text" id="adminUser" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <input type="password" id="adminPass" class="form-control" required>
-          </div>
-          <div class="text-center mt-4">
-            <button type="submit" class="btn btn-dark w-100">Validar acceso</button>
-          </div>
-        </form>
-        <div id="adminAuthMsg" class="mt-3 text-center small"></div>
-      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de edición de cliente -->
+<div class="modal fade" id="modalEditarCliente" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4 bg-white shadow">
+      <h5 class="text-primary fw-bold mb-3">✏️ Editar datos del cliente</h5>
+      <form id="formEditarCliente">
+        <div class="mb-3">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-control" id="editCorreo">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">NIT</label>
+          <input type="text" class="form-control" id="editNIT">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Dirección</label>
+          <textarea class="form-control" id="editDireccion" rows="2"></textarea>
+        </div>
+        <div class="text-end">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">💾 Guardar Cambios</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -103,23 +113,158 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const modalDTE = document.getElementById('modalDTE');
-  const buscar = document.getElementById('buscarDTE');
-  const tbody = document.getElementById('tbodyResultados');
+  const contenedor = document.getElementById('contenidoDTE');
 
-  // 🔹 Buscar documentos
-  buscar.addEventListener('keyup', async function() {
-    const q = this.value.trim();
-    if (q.length < 2) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-muted">Escriba al menos 2 caracteres...</td></tr>`;
+  const ventaGuardada = sessionStorage.getItem('ventaCompleta');
+  let venta = ventaGuardada ? JSON.parse(ventaGuardada) : null;
+
+  // ✅ BOTONES DE NUEVO DTE (Factura, CCF, etc.)
+  document.querySelectorAll('[data-bs-target="#modalDTE"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tipo = btn.getAttribute('data-tipo');
+      contenedor.innerHTML = '<div class="text-center py-5 text-muted">Generando documento electrónico...</div>';
+
+      try {
+        const opciones = venta ? {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify(venta)
+        } : {};
+
+        const res = await fetch(`/dte/modal/${tipo}/`, opciones);
+        const html = await res.text();
+        contenedor.innerHTML = html;
+
+        if (venta) {
+          const producto = venta.producto;
+          const tabla = contenedor.querySelector("tbody");
+          if (tabla) {
+            tabla.innerHTML = `
+              <tr>
+                <td>1</td>
+                <td>${producto.id}</td>
+                <td>${producto.nombre}</td>
+                <td>${producto.cantidad}</td>
+                <td>$${producto.precio.toFixed(2)}</td>
+                <td>$${(producto.precio * producto.cantidad).toFixed(2)}</td>
+              </tr>
+            `;
+          }
+
+          // 🔹 Normalizar datos para envío
+          venta.tipo_dte = tipo;
+          venta.subtotal = producto.precio * producto.cantidad;
+          venta.iva = venta.subtotal * 0.13;
+          venta.total = venta.subtotal + venta.iva;
+
+          const btnGenerar = contenedor.querySelector("button.btn-primary");
+          const notaSimulacion = contenedor.querySelector("small.text-muted");
+          if (btnGenerar) btnGenerar.remove();
+          if (notaSimulacion) notaSimulacion.remove();
+
+          const modal = new bootstrap.Modal(modalDTE);
+          modal.show();
+
+          // ⏳ Cierre automático + envío de correo
+          setTimeout(() => {
+            modal.hide();
+            mostrarModalEnvio();
+            enviarComprobanteCorreo(venta);
+            sessionStorage.removeItem('ventaCompleta');
+          }, 4000);
+        } else {
+          new bootstrap.Modal(modalDTE).show();
+        }
+
+      } catch (err) {
+        contenedor.innerHTML = '<div class="alert alert-danger">❌ Error al generar el DTE.</div>';
+        console.error("Error al generar documento:", err);
+      }
+    });
+  });
+
+  // ✅ MODAL DE ENVÍO DE CORREO
+  function mostrarModalEnvio() {
+    const modal = new bootstrap.Modal(document.getElementById('modalEnvioCorreo'));
+    const estado = document.getElementById('estadoEnvio');
+    estado.innerHTML = `
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <h5 class="mb-2 text-primary">Enviando comprobante al cliente...</h5>
+    `;
+    modal.show();
+  }
+
+  // ✅ CORRECCIÓN: enviar todos los datos reales
+  function enviarComprobanteCorreo(venta) {
+    fetch("/enviar-correo/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        tipo_dte: venta.tipo_dte,
+        correo: venta.correo || venta.cliente?.correo || "cliente@ejemplo.com",
+        cliente: venta.nuevoCliente || venta.cliente?.nombre || venta.clienteId,
+        producto: venta.producto?.nombre || "Producto",
+        cantidad: venta.producto?.cantidad || 1,
+        precio_unitario: venta.producto?.precio || 0,
+        subtotal: venta.subtotal,
+        iva: venta.iva,
+        total: venta.total
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      const estado = document.getElementById('estadoEnvio');
+      if (data.status === "ok") {
+        estado.innerHTML = `
+          <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
+          <h5 class="text-success">Correo enviado correctamente</h5>
+          <p class="text-muted">El comprobante ha sido entregado al cliente.</p>
+        `;
+      } else {
+        estado.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3"></i>
+          <h5 class="text-danger">Error al enviar el correo</h5>
+          <p>${data.msg}</p>
+        `;
+      }
+      setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('modalEnvioCorreo')).hide(), 3000);
+    })
+    .catch(err => {
+      const estado = document.getElementById('estadoEnvio');
+      estado.innerHTML = `
+        <i class="bi bi-x-circle-fill text-danger fs-1 mb-3"></i>
+        <h5 class="text-danger">Fallo de conexión</h5>
+        <p>${err}</p>
+      `;
+      setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('modalEnvioCorreo')).hide(), 3000);
+    });
+  }
+
+  // ✅ BUSCADOR DTE
+  document.getElementById("buscarDTE").addEventListener("input", async (e) => {
+    const query = e.target.value.trim();
+    const tbody = document.getElementById("tbodyResultados");
+
+    if (query.length < 2) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Ingrese texto en el buscador para filtrar documentos...</td></tr>';
       return;
     }
 
-    const res = await fetch(`/dte/buscar/?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/dte/buscar/?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
 
-    if (data.resultados.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-muted">No se encontraron documentos.</td></tr>`;
-    } else {
+      if (!data.resultados || data.resultados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No se encontraron resultados.</td></tr>';
+        return;
+      }
+
       tbody.innerHTML = data.resultados.map((d, i) => `
         <tr>
           <td>${i + 1}</td>
@@ -127,110 +272,46 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${d.numero_control}</td>
           <td>${d.cliente}</td>
           <td>${d.fecha}</td>
-          <td class="fw-bold text-success">$${d.total}</td>
+          <td>$${d.total}</td>
           <td>${d.estado}</td>
           <td>
-            <button class="btn btn-sm btn-outline-dark btn-editar" data-num="${d.numero_control}">
-              <i class="bi bi-pencil-square"></i> Editar
-            </button>
+            <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${d.id}">Editar</button>
           </td>
         </tr>
       `).join('');
-    }
-  });
 
-  // 🔹 Modal de autenticación (edición)
-  document.addEventListener('click', e => {
-    const btn = e.target.closest('.btn-editar');
-    if (!btn) return;
-    const docNum = btn.dataset.num;
-    const modal = new bootstrap.Modal(document.getElementById('modalAdmin'));
-    const form = document.getElementById('formAdminAuth');
-    form.dataset.doc = docNum;
-    document.getElementById('adminAuthMsg').innerHTML = '';
-    form.reset();
-    modal.show();
-  });
+      // ✅ Botón Editar
+      document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          contenedor.innerHTML = '<div class="text-center py-5 text-muted">Cargando documento...</div>';
+          const modal = new bootstrap.Modal(modalDTE);
 
-  // 🔹 Validar administrador
-  document.getElementById('formAdminAuth').addEventListener('submit', async e => {
-    e.preventDefault();
-    const username = adminUser.value.trim();
-    const password = adminPass.value.trim();
-    const numero = e.target.dataset.doc;
-    const msg = document.getElementById('adminAuthMsg');
-    msg.innerHTML = '<span class="text-secondary">Verificando...</span>';
-
-    try {
-      const token = document.querySelector('meta[name="csrf-token"]').content;
-      const res = await fetch('/auth/validar-admin/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
-        body: JSON.stringify({ username, password })
+          try {
+            const res = await fetch(`/dte/ver/${id}/`);
+            const html = await res.text();
+            contenedor.innerHTML = html;
+            modal.show();
+          } catch (err) {
+            contenedor.innerHTML = '<div class="alert alert-danger">❌ Error al cargar el DTE.</div>';
+            console.error("Error al abrir DTE:", err);
+          }
+        });
       });
-      const data = await res.json();
 
-      if (data.success) {
-        msg.innerHTML = '<span class="text-success fw-bold">✅ Acceso concedido</span>';
-        setTimeout(async () => {
-          bootstrap.Modal.getInstance(modalAdmin).hide();
-          const resp = await fetch(`/dte/editar/${numero}/`);
-          const html = await resp.text();
-          document.getElementById('contenidoDTE').innerHTML = html;
-          new bootstrap.Modal(modalDTE).show();
-        }, 800);
-      } else {
-        msg.innerHTML = `<span class="text-danger fw-bold">❌ ${data.error || 'Credenciales inválidas'}</span>`;
-      }
-    } catch {
-      msg.innerHTML = '<span class="text-danger fw-bold">⚠️ Error en validación.</span>';
+    } catch (err) {
+      console.error("Error al buscar DTE:", err);
+      tbody.innerHTML = '<tr><td colspan="8" class="text-danger">Error al buscar documentos.</td></tr>';
     }
-  });
-
-  // ✅ Capturar venta del catálogo (sin alertas)
-  let venta = null;
-  if (sessionStorage.getItem('ventaCompleta')) {
-    venta = JSON.parse(sessionStorage.getItem('ventaCompleta'));
-    sessionStorage.removeItem('ventaCompleta');
-  }
-
-  // ✅ Cargar automáticamente el modal del DTE con los datos de la venta
-  document.querySelectorAll('[data-bs-target="#modalDTE"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const tipo = btn.getAttribute('data-tipo');
-      const contenedor = document.getElementById('contenidoDTE');
-      contenedor.innerHTML = '<div class="text-center py-5 text-muted">Cargando documento...</div>';
-
-      let opciones = {};
-      if (venta) {
-        opciones = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-          },
-          body: JSON.stringify(venta)
-        };
-      }
-
-      try {
-        const res = await fetch(`/dte/modal/${tipo}/`, opciones);
-        const html = await res.text();
-        contenedor.innerHTML = html;
-        new bootstrap.Modal(modalDTE).show();
-      } catch (err) {
-        contenedor.innerHTML = '<div class="alert alert-danger">❌ Error al cargar el documento.</div>';
-        console.error('Error al cargar el DTE:', err);
-      }
-    });
   });
 });
 </script>
 </body>
 </html>
 
-</body>
-</html>
+
+
+
 
 
 

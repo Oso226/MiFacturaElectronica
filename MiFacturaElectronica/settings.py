@@ -138,4 +138,12 @@ LOGIN_REDIRECT_URL = 'menu_principal'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "manuelito2327@gmail.com"
+EMAIL_HOST_PASSWORD = "kzygnyzhqweihsxh"  # ← tu contraseña de aplicación sin espacios
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 

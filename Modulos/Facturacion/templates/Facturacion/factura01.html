@@ -59,6 +59,13 @@
       <p><strong>Vendedor:</strong> {{ empresa.representante_legal|default:"-" }}</p>
     </div>
   </div>
+  {% if editable %}
+    <div class="text-end mt-2">
+      <button class="btn btn-outline-primary btn-sm" id="btnEditarCliente">
+        ✏️ Editar Cliente
+      </button>
+    </div>
+  {% endif %}
 
   <!-- DETALLE -->
   <table class="tabla-detalle mt-3">

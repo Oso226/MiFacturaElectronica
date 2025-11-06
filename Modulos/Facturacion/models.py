@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.timezone import now   # ✅ Este es el import correcto
+from django.utils.timezone import now
 from decimal import Decimal
 
 # ======================================================
@@ -51,6 +51,10 @@ class Cliente(models.Model):
     def __str__(self):
         return self.nombre
 
+    @property
+    def nombre_cliente(self):
+        return self.nombre or "Cliente sin nombre"
+
 
 # ======================================================
 # MODELO PRODUCTO
@@ -67,7 +71,7 @@ class Producto(models.Model):
 
 
 # ======================================================
-# MODELO DTE
+# MODELO DTE (DOCUMENTO TRIBUTARIO ELECTRÓNICO)
 # ======================================================
 class DTE(models.Model):
     TIPO_DTE_CHOICES = [
@@ -75,6 +79,8 @@ class DTE(models.Model):
         ('03', 'Comprobante de Crédito Fiscal'),
         ('05', 'Nota de Crédito'),
         ('06', 'Nota de Débito'),
+        ('07', 'Retención'),
+        ('11', 'Liquidación'),
     ]
     ESTADOS = [
         ('Activo', 'Activo'),
@@ -83,7 +89,8 @@ class DTE(models.Model):
 
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    tipo_dte = models.CharField(max_length=2, choices=TIPO_DTE_CHOICES, default='03')
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # 🔹 quién emitió
+    tipo_dte = models.CharField(max_length=2, choices=TIPO_DTE_CHOICES, default='01')
     numero_control = models.CharField(max_length=50, unique=True)
     fecha_emision = models.DateTimeField(auto_now_add=True)
     condicion_pago = models.CharField(max_length=20, default='Contado')
@@ -99,6 +106,21 @@ class DTE(models.Model):
     def __str__(self):
         return f"{self.get_tipo_dte_display()} - {self.numero_control}"
 
+    def actualizar_totales(self):
+        """Recalcula subtotal, IVA y total en base a los detalles"""
+        detalles = self.detalles.all()
+        subtotal = sum(d.total_item for d in detalles)
+        iva = subtotal * Decimal('0.13')
+        total = subtotal + iva
+        self.subtotal = subtotal
+        self.iva = iva
+        self.total = total
+        self.save()
+
+    @property
+    def nombre_cliente(self):
+        return self.cliente.nombre_cliente
+
 
 # ======================================================
 # MODELO DETALLE DEL DTE
@@ -108,7 +130,14 @@ class DetalleDTE(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    total_item = models.DecimalField(max_digits=10, decimal_places=2)
+    total_item = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
+
+    def save(self, *args, **kwargs):
+        """Calcula el total del item antes de guardar"""
+        self.total_item = self.cantidad * self.precio_unitario
+        super().save(*args, **kwargs)
+        # Actualiza totales del DTE
+        self.dte.actualizar_totales()
 
     def __str__(self):
         return f"{self.producto.descripcion} ({self.cantidad})"
@@ -165,7 +194,7 @@ class Inventario(models.Model):
 # MODELO COMPRA (para Libro de Compras)
 # ======================================================
 class Compra(models.Model):
-    fecha = models.DateTimeField(default=now)  # ✅ ahora funciona correctamente
+    fecha = models.DateTimeField(default=now)
     comprobante_numero = models.CharField(max_length=50)
     registro_nrc = models.CharField(max_length=20)
     proveedor = models.CharField(max_length=150)
@@ -176,18 +205,3 @@ class Compra(models.Model):
 
     def __str__(self):
         return f"{self.proveedor} - {self.fecha.strftime('%d/%m/%Y')}"
-# ======================================================
-# 🛒 CATÁLOGO DE PRODUCTOS / STOCK
-# ======================================================
-
-from django.contrib.auth.decorators import login_required
-
-@login_required
-def catalogo_productos(request):
-    """
-    Muestra los productos con su imagen, descripción y botón 'Vender'.
-    """
-    from .models import Producto
-    productos = Producto.objects.all().order_by('descripcion')
-    return render(request, 'Facturacion/catalogo_productos.html', {'productos': productos})
-

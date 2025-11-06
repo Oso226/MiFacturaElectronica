@@ -23,6 +23,7 @@ urlpatterns = [
     path('productos/eliminar/<int:id>/', views.eliminar_producto, name='eliminar_producto'),
     path('compras/registrar/', views.registrar_compra, name='registrar_compra'),
     path('catalogo/', views.catalogo_productos, name='catalogo_productos'),
+    path('registrar_venta/', views.registrar_venta, name='registrar_venta'),
 
     # Facturación
     path('menu/facturacion/', views.menu_facturacion, name='menu_facturacion'),
@@ -37,6 +38,7 @@ urlpatterns = [
     path('auth/validar-admin/', views.validar_admin, name='validar_admin'),
     path('dte/editar/<str:numero_control>/', views.editar_dte, name='editar_dte'),
     path('dte/actualizar/<str:numero_control>/', views.actualizar_dte, name='actualizar_dte'),
+    path('enviar-correo/', views.enviar_correo, name='enviar_correo'),
 
     # Formularios nuevos
     path('clientes/', views.lista_clientes, name='lista_clientes'),

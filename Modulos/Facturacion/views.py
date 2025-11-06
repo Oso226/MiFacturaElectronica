@@ -32,6 +32,19 @@ import time
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
+from .models import Producto
+from django.core.mail import send_mail, EmailMessage
+from django.template.loader import render_to_string
+from django.conf import settings
+import json
+from .models import DTE
+from .models import DTE, DetalleDTE
+from django.utils.timezone import localtime
+import tempfile
+from weasyprint import HTML
+import os
+from datetime import datetime
+from .models import Cliente, DTE, DetalleDTE, Empresa
 
 
 # ======================================================
@@ -582,17 +595,27 @@ def modal_dte(request, tipo):
 @login_required
 def ver_dte(request, dte_id):
     """
-    Muestra el DTE individual (por ejemplo, cuando se abre desde el QR).
+    Muestra el DTE (desde el botón Editar o QR), con productos incluidos.
+    Si el usuario es Administrador, el modal será editable.
     """
+    from .models import DTE, DetalleDTE, Perfil
+
     dte = get_object_or_404(DTE, id=dte_id)
     empresa = dte.empresa
     cliente = dte.cliente
 
-    # Generar nuevamente el QR para mostrarlo en pantalla
+    # 🔹 Obtener los productos asociados
+    detalles = DetalleDTE.objects.filter(dte=dte).select_related('producto')
+
+    # 🔹 Verificar si el usuario es Administrador
+    perfil = Perfil.objects.filter(user=request.user).first()
+    es_admin = perfil and perfil.rol.lower() == 'administrador'
+
+    # 🔹 Generar QR
     qr_text = f"{dte.numero_control}|{empresa.nit}|{cliente.nit}|{dte.total:.2f}"
     qr_data = _generar_qr_datauri(qr_text)
 
-    # Plantilla según tipo de documento
+    # 🔹 Plantilla según tipo
     plantillas_dte = {
         '01': 'Facturacion/factura01.html',
         '03': 'Facturacion/ccf03.html',
@@ -601,38 +624,20 @@ def ver_dte(request, dte_id):
         '07': 'Facturacion/retencion07.html',
         '11': 'Facturacion/liquidacion11.html',
     }
-    template = plantillas_dte.get(dte.tipo_dte, 'Facturacion/ccf03.html')
+    template = plantillas_dte.get(dte.tipo_dte, 'Facturacion/factura01.html')
 
-    return render(request, template, {
+    # 🔹 Contexto
+    contexto = {
         'dte': dte,
         'empresa': empresa,
         'cliente': cliente,
-        'qr_data': qr_data
-    })
+        'detalles': detalles,
+        'qr_data': qr_data,
+        'editable': es_admin,  # habilita edición si es admin
+    }
 
-@login_required
-def buscar_dte(request):
-    """Filtra DTE por cliente o número de control."""
-    query = request.GET.get('q', '').strip()
-    resultados = []
+    return render(request, template, contexto)
 
-    if len(query) >= 2:
-        dtes = DTE.objects.filter(
-            Q(numero_control__icontains=query) |
-            Q(codigo_generacion__icontains=query) |
-            Q(cliente__nombre__icontains=query)
-        ).select_related('cliente').order_by('-fecha_emision')[:15]
-
-        resultados = [{
-            'tipo_dte': dte.get_tipo_dte_display(),
-            'numero_control': dte.numero_control,
-            'cliente': dte.cliente.nombre if dte.cliente else 'N/A',
-            'fecha': dte.fecha_emision.strftime("%d/%m/%Y %H:%M"),
-            'total': f"{dte.total:.2f}",
-            'estado': dte.estado
-        } for dte in dtes]
-
-    return JsonResponse({'resultados': resultados})
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -759,6 +764,37 @@ def actualizar_dte(request, numero_control):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+    
+def buscar_dte(request):
+    """Busca documentos DTE por cliente o número de control"""
+    q = request.GET.get("q", "").strip()
+    resultados = []
+
+    if q:
+        # 🔹 Filtramos por cliente o número de control
+        dtes = (
+            DTE.objects.filter(
+                Q(cliente__nombre__icontains=q) | Q(numero_control__icontains=q)
+            )
+            .select_related("cliente")
+            .order_by("-fecha_emision")[:10]  # ✅ Solo los 10 más recientes
+        )
+
+        resultados = [
+            {
+                "id": d.id,
+                "tipo_dte": d.get_tipo_dte_display(),
+                "numero_control": d.numero_control,
+                "cliente": d.cliente.nombre,
+                # ✅ Convertir la fecha a zona local (El Salvador) y formatearla
+                "fecha": localtime(d.fecha_emision).strftime("%Y-%m-%d %H:%M"),
+                "total": str(round(d.total, 2)),
+                "estado": d.estado,
+            }
+            for d in dtes
+        ]
+
+    return JsonResponse({"resultados": resultados})
 
 @login_required
 def catalogo_productos(request):
@@ -773,7 +809,148 @@ def catalogo_productos(request):
         'clientes': clientes
     })
 
+def registrar_venta(request):
+    if request.method == "POST":
+        try:
+            producto_id = int(request.POST.get('producto_id'))
+            cantidad = int(request.POST.get('cantidad'))
 
+            producto = get_object_or_404(Producto, id=producto_id)
 
+            # Validar stock
+            if producto.inventario < cantidad:
+                return JsonResponse({'status': 'error', 'mensaje': 'Stock insuficiente'}, status=400)
+
+            # Descontar inventario
+            producto.inventario -= cantidad
+            producto.save()
+
+            return JsonResponse({'status': 'ok', 'nuevo_stock': producto.inventario})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'mensaje': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'mensaje': 'Método no permitido'}, status=405)
+
+def enviar_correo(request):
+    """Envía el comprobante de venta al correo del cliente con PDF y JSON adjuntos."""
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            correo = data.get("correo")
+            cliente_nombre = data.get("cliente")
+            producto = data.get("producto")
+            cantidad = data.get("cantidad")
+            precio_unitario = float(data.get("precio_unitario", 0))
+            subtotal = float(data.get("subtotal", 0))
+            iva = float(data.get("iva", 0))
+            total = float(data.get("total", 0))
+            tipo_dte = data.get("tipo_dte", "01")
+
+            # 🧩 Intentar obtener el cliente real desde la BD (si envía ID)
+            cliente_obj = None
+            if isinstance(cliente_nombre, int) or str(cliente_nombre).isdigit():
+                cliente_obj = Cliente.objects.filter(id=int(cliente_nombre)).first()
+            elif isinstance(cliente_nombre, str):
+                cliente_obj = Cliente.objects.filter(nombre__iexact=cliente_nombre.strip()).first()
+
+            if cliente_obj:
+                cliente_nombre = cliente_obj.nombre
+                correo = cliente_obj.correo or correo or "cliente@ejemplo.com"
+
+            if not correo:
+                return JsonResponse({"status": "error", "msg": "Correo no proporcionado"})
+
+            # 🔹 Obtener empresa (si existe)
+            empresa = Empresa.objects.first()
+
+            # ✅ Crear contexto de factura (idéntico al modal)
+            contexto = {
+                "empresa": {
+                    "nombre": empresa.nombre if empresa else "Omnigest S.A. de C.V.",
+                    "nit": empresa.nit if empresa else "0623-123456-1-9",
+                    "nrc": empresa.nrc if empresa else "000000-0",
+                    "direccion": empresa.direccion if empresa else "San Salvador Centro frente a Salvador del Mundo",
+                    "telefono": empresa.telefono if empresa else "2290-9444",
+                    "correo": empresa.correo if empresa else "info@omnigest.com",
+                    "sucursal": "Sucursal Salvador del Mundo",
+                },
+                "cliente": {
+                    "nombre": cliente_nombre,
+                    "direccion": cliente_obj.direccion if cliente_obj else "Ahuachapán",
+                    "nit": cliente_obj.nit if cliente_obj else "0101-231288-103-0",
+                    "correo": correo,
+                },
+                "dte": {
+                    "tipo": tipo_dte,
+                    "numero_control": f"DTE-{tipo_dte}-{datetime.now().strftime('%H%M%S')}",
+                    "fecha_emision": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "condicion": "Contado",
+                    "caja": "101",
+                    "tipo_venta": "CONTADO",
+                    "vendedor": "Sucursal Salvador del Mundo",
+                },
+                "detalle": [
+                    {
+                        "codigo": "P001",
+                        "descripcion": producto,
+                        "cantidad": cantidad,
+                        "precio_unitario": precio_unitario,
+                        "total_item": subtotal,
+                    }
+                ],
+                "totales": {
+                    "subtotal": subtotal,
+                    "iva": iva,
+                    "total": total,
+                },
+                "notas": "Gracias por su compra. Conserve este comprobante como respaldo de su operación.",
+                "en_letras": f"{total:.2f} dólares",
+            }
+
+            # ✅ Renderizar HTML del DTE (idéntico al modal)
+            html_string = render_to_string("Facturacion/factura01.html", contexto)
+
+            # ✅ Generar PDF
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as pdf_temp:
+                HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(pdf_temp.name)
+                pdf_temp.seek(0)
+                pdf_bytes = pdf_temp.read()
+
+            # ✅ Crear JSON estructurado
+            json_bytes = json.dumps(contexto, indent=4, ensure_ascii=False).encode("utf-8")
+
+            # ✅ Crear cuerpo del correo
+            html_content = render_to_string("Facturacion/email_comprobante.html", {
+                "cliente": cliente_nombre,
+                "producto": producto,
+                "total": total,
+                "tipo_dte": dict(DTE.TIPO_DTE_CHOICES).get(tipo_dte, "Factura")
+            })
+
+            # ✅ Asunto del correo
+            asunto = f"📄 Comprobante Electrónico ({dict(DTE.TIPO_DTE_CHOICES).get(tipo_dte, 'Factura')}) - {cliente_nombre}"
+
+            # ✅ Enviar correo
+            email = EmailMessage(
+                subject=asunto,
+                body=html_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[correo],
+            )
+            email.content_subtype = "html"
+            email.attach(f"Comprobante_{cliente_nombre}.pdf", pdf_bytes, "application/pdf")
+            email.attach(f"Comprobante_{cliente_nombre}.json", json_bytes, "application/json")
+            email.send(fail_silently=False)
+
+            os.remove(pdf_temp.name)
+
+            return JsonResponse({"status": "ok", "msg": f"Correo enviado correctamente a {correo}."})
+
+        except Exception as e:
+            print(f"❌ Error al enviar correo: {e}")
+            return JsonResponse({"status": "error", "msg": str(e)})
+
+    return JsonResponse({"status": "error", "msg": "Método no permitido"})
 
 
