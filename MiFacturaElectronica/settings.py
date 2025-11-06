@@ -34,6 +34,7 @@ INSTALLED_APPS = [
 # =====================================================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,20 +95,15 @@ USE_I18N = True
 USE_TZ = True
 
 # =====================================================
-# ARCHIVOS ESTÁTICOS (Render)
+# ARCHIVOS ESTÁTICOS (Render + Whitenoise)
 # =====================================================
 STATIC_URL = '/static/'
-
-# Archivos estáticos del proyecto local
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'Modulos', 'Facturacion', 'static'),
-]
-
-# Ruta donde Django colocará los archivos estáticos en producción
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'Modulos', 'Facturacion', 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Evita que Render falle si collectstatic no puede ejecutarse correctamente
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+# Whitenoise servirá los archivos estáticos comprimidos
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # =====================================================
 # CONFIGURACIÓN DE LOGIN
