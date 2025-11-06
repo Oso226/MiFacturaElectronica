@@ -1,0 +1,90 @@
+/* ================================
+   🎨 Estilo general y tipografía
+   ================================ */
+body {
+    background-color: #a4badb;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ================================
+   🪟 Modal centrado y elegante
+   ================================ */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-header {
+    background-color: #198754; /* Verde Bootstrap */
+    color: white;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    text-align: center;
+}
+
+.modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* ================================
+   📦 Formulario dentro del modal
+   ================================ */
+form {
+    font-size: 1rem;
+}
+
+form p {
+    margin-bottom: 1rem;
+}
+
+input, select, textarea {
+    border-radius: 8px !important;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #198754;
+    box-shadow: 0 0 5px rgba(25, 135, 84, 0.3);
+    outline: none;
+}
+
+/* ================================
+   🔘 Botones
+   ================================ */
+.btn-success {
+    background-color: #198754;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #157347;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* ================================
+   ✨ Animaciones
+   ================================ */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}

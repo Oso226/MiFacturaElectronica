@@ -1,0 +1,68 @@
+body {
+    background-color: #dceeff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 🔍 Barra superior */
+form input {
+    width: 250px;
+    border-radius: 8px;
+    border: 1px solid #b0bec5;
+}
+
+form .btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+form .btn-primary {
+    background-color: #2b4eff;
+    border: none;
+}
+
+form .btn-primary:hover {
+    background-color: #1a35b3;
+}
+
+form .btn-outline-secondary {
+    color: #333;
+    border: 1px solid #999999;
+}
+
+form .btn-outline-secondary:hover {
+    background-color: #e3e3e3;
+}
+
+/* 🧾 Tabla */
+.table-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 25px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f1f8ff;
+}
+
+/* 🟢🟡🔴 Estados */
+.status-badge {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #fff;
+    display: inline-block;
+}
+
+.status-green { background-color: #28a745; }
+.status-yellow { background-color: #ffc107; color: #000; }
+.status-red { background-color: #dc3545; }
+
+/* Encabezado */
+.table-dark {
+    background-color: #1a237e !important;
+    color: #fff;
+}

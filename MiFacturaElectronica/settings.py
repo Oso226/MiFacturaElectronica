@@ -129,6 +129,14 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
+# === Archivos estáticos para modo local ===
+if DEBUG:
+    import mimetypes
+    mimetypes.add_type("text/css", ".css", True)
+    STATICFILES_DIRS = [BASE_DIR / 'Modulos' / 'Facturacion' / 'static']
+else:
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Evita que falle collectstatic en Render si faltan archivos
 if os.environ.get('RENDER'):

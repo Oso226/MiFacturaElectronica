@@ -1,0 +1,72 @@
+/* 🔹 Forzar todo al borde superior */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #1d7dde;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 🔹 Contenedor general */
+.contenedor-clientes {
+  padding-top: 0;
+  margin-top: 0;
+  text-align: center;
+}
+
+/* 🔹 Barra superior */
+.barra-superior {
+  background-color: #487fcd;
+  color: white;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-bottom: 3px solid #00bcd4;
+}
+
+/* Ajuste para el resto del contenido bajo la barra */
+.table-responsive {
+  margin-top: 100px; /* deja espacio debajo de la barra superior */
+}
+
+/* 🔹 Botones */
+.btn-agregar {
+  background-color: #91d400;
+  color: white;
+  border: none;
+  transition: 0.3s ease;
+}
+.btn-agregar:hover {
+  background-color: #0097a7;
+}
+.btn-secondary {
+  background-color: #6c757d;
+  border: none;
+}
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* 🔹 Tabla */
+.table-encabezado th {
+  background-color: #00bcd4;
+  color: #000;
+}
+.btn-editar {
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+}
+.btn-editar:hover {
+  background-color: #e0a800;
+}
+.btn-eliminar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+.btn-eliminar:hover {
+  background-color: #b02a37;
+}

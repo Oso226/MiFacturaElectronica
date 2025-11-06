@@ -1,0 +1,62 @@
+/* 🎨 Fondo y tipografía */
+body {
+    background-color: #f4f6f9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 🪟 Modal */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
+}
+
+.card {
+    border-radius: 15px;
+    background-color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    font-weight: 500;
+    color: #212529;
+}
+
+input, select, textarea {
+    border-radius: 8px !important;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #198754;
+    box-shadow: 0 0 5px rgba(25, 135, 84, 0.3);
+    outline: none;
+}
+
+/* 🔘 Botón */
+.btn-success {
+    background-color: #198754;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #157347;
+}
+
+/* ✨ Animación */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+} 
+
+/* 🔹 Ajuste específico para el textarea de dirección */
+textarea#id_direccion {
+    height: 60px !important;   /* la mitad del tamaño actual */
+    resize: none;              /* evita que el usuario cambie el tamaño */
+}
+

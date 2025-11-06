@@ -1,0 +1,73 @@
+/* ===========================
+   REGISTRO - OMNIGEST
+   =========================== */
+body {
+  background: linear-gradient(180deg, #00224d, #0c356a);
+  color: white;
+  font-family: "Segoe UI", sans-serif;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-card {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  width: 450px;
+  padding: 40px 35px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.register-card img {
+  width: 110px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 8px rgba(0, 188, 212, 0.8));
+}
+
+h3 {
+  color: #00bcd4;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.form-control,
+.form-select {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  color: white;
+}
+
+option {
+  color: black;
+}
+
+.btn-primary {
+  background-color: #00bcd4;
+  border: none;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #0097a7;
+}
+
+.text-info {
+  color: #00bcd4 !important;
+}
+
+.text-info:hover {
+  text-decoration: underline;
+  color: #66e0ff !important;
+}

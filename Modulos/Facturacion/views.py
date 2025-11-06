@@ -45,6 +45,7 @@ from weasyprint import HTML
 import os
 from datetime import datetime
 from .models import Cliente, DTE, DetalleDTE, Empresa
+import threading
 
 
 # ======================================================
@@ -831,10 +832,20 @@ def registrar_venta(request):
 
     return JsonResponse({'status': 'error', 'mensaje': 'Método no permitido'}, status=405)
 
+def enviar_correo_async(email):
+    """Envía el correo en un hilo separado para evitar timeout en Render."""
+    try:
+        email.send(fail_silently=False)
+        print("✅ Correo enviado correctamente (modo async).")
+    except Exception as e:
+        print(f"❌ Error al enviar correo async: {e}")
+
+
 def enviar_correo(request):
     """Envía el comprobante de venta al correo del cliente con PDF y JSON adjuntos."""
     if request.method == "POST":
         try:
+            # 📦 Obtener datos enviados desde el frontend
             data = json.loads(request.body)
 
             correo = data.get("correo")
@@ -847,7 +858,7 @@ def enviar_correo(request):
             total = float(data.get("total", 0))
             tipo_dte = data.get("tipo_dte", "01")
 
-            # 🧩 Intentar obtener el cliente real desde la BD (si envía ID)
+            # 🧩 Intentar obtener el cliente real desde la BD (si se envía ID o nombre)
             cliente_obj = None
             if isinstance(cliente_nombre, int) or str(cliente_nombre).isdigit():
                 cliente_obj = Cliente.objects.filter(id=int(cliente_nombre)).first()
@@ -861,10 +872,10 @@ def enviar_correo(request):
             if not correo:
                 return JsonResponse({"status": "error", "msg": "Correo no proporcionado"})
 
-            # 🔹 Obtener empresa (si existe)
+            # 🏢 Obtener datos de la empresa (si existe)
             empresa = Empresa.objects.first()
 
-            # ✅ Crear contexto de factura (idéntico al modal)
+            # ✅ Crear contexto para la plantilla
             contexto = {
                 "empresa": {
                     "nombre": empresa.nombre if empresa else "Omnigest S.A. de C.V.",
@@ -908,10 +919,10 @@ def enviar_correo(request):
                 "en_letras": f"{total:.2f} dólares",
             }
 
-            # ✅ Renderizar HTML del DTE (idéntico al modal)
+            # ✅ Renderizar HTML de la factura
             html_string = render_to_string("Facturacion/factura01.html", contexto)
 
-            # ✅ Generar PDF
+            # ✅ Generar PDF temporal
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as pdf_temp:
                 HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(pdf_temp.name)
                 pdf_temp.seek(0)
@@ -920,7 +931,7 @@ def enviar_correo(request):
             # ✅ Crear JSON estructurado
             json_bytes = json.dumps(contexto, indent=4, ensure_ascii=False).encode("utf-8")
 
-            # ✅ Crear cuerpo del correo
+            # ✅ Renderizar cuerpo del correo (HTML)
             html_content = render_to_string("Facturacion/email_comprobante.html", {
                 "cliente": cliente_nombre,
                 "producto": producto,
@@ -931,7 +942,7 @@ def enviar_correo(request):
             # ✅ Asunto del correo
             asunto = f"📄 Comprobante Electrónico ({dict(DTE.TIPO_DTE_CHOICES).get(tipo_dte, 'Factura')}) - {cliente_nombre}"
 
-            # ✅ Enviar correo
+            # ✅ Crear correo
             email = EmailMessage(
                 subject=asunto,
                 body=html_content,
@@ -939,18 +950,27 @@ def enviar_correo(request):
                 to=[correo],
             )
             email.content_subtype = "html"
+
+            # ✅ Adjuntar PDF y JSON
             email.attach(f"Comprobante_{cliente_nombre}.pdf", pdf_bytes, "application/pdf")
             email.attach(f"Comprobante_{cliente_nombre}.json", json_bytes, "application/json")
-            email.send(fail_silently=False)
 
+            # ✅ Enviar correo en hilo separado (evita timeout en Render)
+            threading.Thread(target=enviar_correo_async, args=(email,)).start()
+
+            # ✅ Eliminar archivo temporal
             os.remove(pdf_temp.name)
 
-            return JsonResponse({"status": "ok", "msg": f"Correo enviado correctamente a {correo}."})
+            # ✅ Responder inmediatamente al cliente
+            return JsonResponse({
+                "status": "ok",
+                "msg": f"El comprobante está siendo enviado a {correo}."
+            })
 
         except Exception as e:
             print(f"❌ Error al enviar correo: {e}")
             return JsonResponse({"status": "error", "msg": str(e)})
 
+    # Si no es método POST
     return JsonResponse({"status": "error", "msg": "Método no permitido"})
-
 

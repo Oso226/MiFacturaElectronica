@@ -1,0 +1,114 @@
+/* ======== Fondo y estructura general ======== */
+body {
+  background: linear-gradient(to bottom right, #e8f3fc, #c9e6ff);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenedor principal */
+.container {
+  background-color: #ffffffcc;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+}
+
+/* Título principal */
+h2 {
+  color: #0077c2;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ======== Tarjetas de producto ======== */
+.card {
+  border-radius: 12px;
+  transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.card img {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+}
+
+.card-footer {
+  border-top: 1px solid #f0f0f043;
+}
+
+/* Botones */
+.btn-outline-primary {
+  border-color: #0077c2;
+  color: #0077c2;
+  font-weight: 600;
+}
+
+.btn-outline-primary:hover {
+  background-color: #0077c2;
+  color: white;
+}
+
+/* ======== Modal de venta ======== */
+.modal-content {
+  border-radius: 15px;
+}
+
+.modal-header {
+  background: #0077c2;
+  color: white;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+/* ======== Footer ======== */
+footer {
+  background-color: #004c91;
+  color: #75aded;
+  text-align: center;
+  padding: 15px 10px;
+  margin-top: auto;
+  font-size: 0.95rem;
+  border-top: 4px solid #0077c2;
+}
+
+footer a {
+  color: #5a83b3;
+  text-decoration: none;
+  margin: 0 10px;
+  font-weight: 500;
+}
+
+footer a:hover {
+  color: #ffdd57;
+}
+
+/* Iconos del pie */
+footer i {
+  margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card img {
+    height: 150px;
+  }
+}
