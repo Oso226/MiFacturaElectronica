@@ -94,11 +94,20 @@ USE_I18N = True
 USE_TZ = True
 
 # =====================================================
-# ARCHIVOS ESTÁTICOS
+# ARCHIVOS ESTÁTICOS (Render)
 # =====================================================
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'Modulos' / 'Facturacion' / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Archivos estáticos del proyecto local
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'Modulos', 'Facturacion', 'static'),
+]
+
+# Ruta donde Django colocará los archivos estáticos en producción
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Evita que Render falle si collectstatic no puede ejecutarse correctamente
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # =====================================================
 # CONFIGURACIÓN DE LOGIN
