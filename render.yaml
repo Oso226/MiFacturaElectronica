@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: MiFacturaElectronica
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn MiFacturaElectronica.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: MiFacturaElectronica.settings
+      - key: PYTHON_VERSION
+        value: 3.11.9
