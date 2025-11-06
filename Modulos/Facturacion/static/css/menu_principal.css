@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL AJUSTADO
+   OMNIGEST - MENÚ PRINCIPAL RESPONSIVE
    =========================== */
 
 body {
@@ -7,14 +7,14 @@ body {
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
   color: white;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Fondo con logo */
 .hero-container {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
   background: url("../img/logo.png") no-repeat center center/cover;
   display: flex;
@@ -39,6 +39,8 @@ body {
   position: relative;
   z-index: 2;
   margin-top: 40px;
+  padding: 0 20px;
+  text-align: center;
 }
 
 .titulo {
@@ -58,22 +60,18 @@ body {
   position: relative;
   z-index: 2;
   margin-top: 70px;
+  margin-bottom: 100px;
 }
 
 /* 🔹 Fila superior e inferior */
 .fila-superior,
-.fila-inferior {
-  display: flex;
-  justify-content: center;
-  gap: 200px;
-  margin-bottom: 50px;
-}
-
-/* 🔹 Fila central (tarjeta única centrada) */
+.fila-inferior,
 .fila-central {
   display: flex;
   justify-content: center;
-  margin-bottom: 60px;
+  flex-wrap: wrap;
+  gap: 60px;
+  margin-bottom: 50px;
 }
 
 /* Tarjetas */
@@ -86,7 +84,7 @@ body {
   transition: all 0.3s ease-in-out;
   box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
   padding: 20px;
-  width: 300px;
+  width: 280px;
   height: 200px;
   text-align: center;
 }
@@ -150,53 +148,71 @@ body {
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
 }
 
-/* ===== Responsive General ===== */
+/* ===== Responsive ===== */
 
 /* Móviles pequeños */
 @media (max-width: 576px) {
-  .contenedor-facturacion {
-    padding: 1rem !important;
+  .hero-container {
+    min-height: 100vh;
+    justify-content: flex-start;
+    padding-bottom: 2rem;
   }
 
-  .titulo-principal {
+  .titulo {
     font-size: 1.4rem;
-    text-align: center;
   }
 
-  .btn {
-    font-size: 0.9rem;
+  .subtitulo {
+    font-size: 0.95rem;
+  }
+
+  .menu-card {
+    width: 90%;
+    height: auto;
+    padding: 20px 10px;
+  }
+
+  .menu-opciones {
+    margin-top: 40px;
+  }
+
+  .btn-info {
     width: 100%;
   }
 
-  img {
-    max-width: 100%;
-    height: auto;
-  }
-
-  .card {
-    margin-bottom: 1rem;
+  .fila-superior,
+  .fila-inferior,
+  .fila-central {
+    gap: 30px;
   }
 }
 
 /* Tablets */
 @media (min-width: 577px) and (max-width: 992px) {
-  .contenedor-facturacion {
-    padding: 2rem;
+  .titulo {
+    font-size: 1.8rem;
   }
 
-  .titulo-principal {
-    font-size: 1.6rem;
+  .fila-superior,
+  .fila-inferior,
+  .fila-central {
+    gap: 40px;
   }
 
-  .card {
-    margin: 0.5rem;
+  .menu-card {
+    width: 260px;
+    height: auto;
   }
 }
 
-/* Escritorio */
+/* Escritorio grande */
 @media (min-width: 993px) {
-  .contenedor-facturacion {
-    max-width: 1100px;
-    margin: 0 auto;
+  .menu-card {
+    width: 300px;
+    height: 200px;
+  }
+
+  .menu-opciones {
+    padding-bottom: 3rem;
   }
 }
