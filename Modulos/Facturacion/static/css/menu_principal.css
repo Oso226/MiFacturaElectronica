@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL RESPONSIVE Y CORREGIDO PARA RENDER
+   OMNIGEST - MENÚ PRINCIPAL RESPONSIVE (CORREGIDO PARA RENDER)
    =========================== */
 
 body {
@@ -7,32 +7,29 @@ body {
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
   color: white;
-  min-height: 100vh;
   background-color: #001437;
   overflow-x: hidden;
-  overflow-y: auto; /* permite scroll si el contenido sobrepasa la pantalla */
+  overflow-y: auto; /* permite scroll completo */
 }
 
 /* Fondo con logo */
 .hero-container {
   position: relative;
-  min-height: 100%;
+  min-height: 100vh;
   width: 100%;
   background: url("/static/img/logo.png") no-repeat center center / cover;
-  display: block; /* ⚡ ya no usa flex (Render lo cortaba) */
-  text-align: center;
 }
 
-/* Capa oscura encima del fondo */
+/* Capa oscura (colocada detrás del contenido) */
 .overlay {
-  position: absolute;
+  position: fixed; /* ← 🔹 cambia a fixed (no absolute) */
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   background: rgba(0, 15, 40, 0.85);
   backdrop-filter: blur(5px);
-  z-index: 1;
+  z-index: 0; /* ← 🔹 más bajo que todo */
 }
 
 /* Encabezado */
@@ -41,6 +38,7 @@ body {
   z-index: 2;
   margin-top: 40px;
   padding: 0 20px;
+  text-align: center;
 }
 
 .titulo {
@@ -67,7 +65,7 @@ body {
   gap: 50px;
 }
 
-/* Fila de tarjetas */
+/* Filas */
 .fila-superior,
 .fila-central,
 .fila-inferior {
@@ -132,7 +130,7 @@ body {
 
 /* Botón cerrar sesión */
 .btn-cerrar {
-  position: absolute;
+  position: fixed;
   top: 25px;
   right: 40px;
   background: transparent;
@@ -142,7 +140,7 @@ body {
   border-radius: 25px;
   padding: 8px 20px;
   font-size: 1rem;
-  z-index: 3;
+  z-index: 5;
   transition: 0.3s;
 }
 
