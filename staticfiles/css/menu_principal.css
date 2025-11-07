@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL AJUSTADO
+   OMNIGEST - MENÚ PRINCIPAL COMPATIBLE CON RENDER
    =========================== */
 
 body {
@@ -7,38 +7,23 @@ body {
   padding: 0;
   font-family: 'Segoe UI', sans-serif;
   color: white;
-  height: 100vh;
-  overflow: hidden;
+  background: linear-gradient(rgba(0, 15, 40, 0.9), rgba(0, 15, 40, 0.95)),
+              url("/static/img/logo.png") no-repeat center center / cover;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-/* Fondo con logo */
+/* Estructura principal */
 .hero-container {
-  position: relative;
-  height: 100vh;
   width: 100%;
-  background: url("../img/logo.png") no-repeat center center/cover;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 15, 40, 0.85);
-  backdrop-filter: blur(5px);
-  z-index: 1;
+  padding: 60px 20px;
+  text-align: center;
 }
 
 /* Encabezado */
 .header {
-  position: relative;
-  z-index: 2;
-  margin-top: 40px;
+  margin-bottom: 60px;
 }
 
 .titulo {
@@ -53,27 +38,23 @@ body {
   font-size: 1.1rem;
 }
 
-/* Contenedor principal */
+/* Contenedor de menús */
 .menu-opciones {
-  position: relative;
-  z-index: 2;
-  margin-top: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+  margin-bottom: 100px;
 }
 
-/* 🔹 Fila superior e inferior */
+/* Filas */
 .fila-superior,
+.fila-central,
 .fila-inferior {
   display: flex;
   justify-content: center;
-  gap: 200px;
-  margin-bottom: 50px;
-}
-
-/* 🔹 Fila central (tarjeta única centrada) */
-.fila-central {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 60px;
+  flex-wrap: wrap;
+  gap: 60px;
 }
 
 /* Tarjetas */
@@ -82,11 +63,10 @@ body {
   border: none;
   border-radius: 18px;
   color: white;
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease-in-out;
   box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
   padding: 20px;
-  width: 300px;
+  width: 280px;
   height: 200px;
   text-align: center;
 }
@@ -110,7 +90,7 @@ body {
   font-weight: 600;
 }
 
-/* Botón */
+/* Botones */
 .btn-info {
   background-color: white;
   border: none;
@@ -120,6 +100,7 @@ body {
   width: 110px;
   border-radius: 25px;
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease-in-out;
 }
 
 .btn-info:hover {
@@ -130,7 +111,7 @@ body {
 
 /* Botón cerrar sesión */
 .btn-cerrar {
-  position: absolute;
+  position: fixed;
   top: 25px;
   right: 40px;
   background: transparent;
@@ -140,7 +121,7 @@ body {
   border-radius: 25px;
   padding: 8px 20px;
   font-size: 1rem;
-  z-index: 3;
+  z-index: 5;
   transition: 0.3s;
 }
 
@@ -149,3 +130,51 @@ body {
   color: #001437;
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
 }
+
+/* ===== Responsive ===== */
+
+/* Móviles pequeños */
+@media (max-width: 576px) {
+  .titulo {
+    font-size: 1.4rem;
+  }
+
+  .subtitulo {
+    font-size: 0.95rem;
+  }
+
+  .menu-card {
+    width: 90%;
+    height: auto;
+    padding: 20px 10px;
+  }
+
+  .menu-opciones {
+    gap: 30px;
+  }
+
+  .btn-info {
+    width: 100%;
+  }
+}
+
+/* Tablets */
+@media (min-width: 577px) and (max-width: 992px) {
+  .titulo {
+    font-size: 1.8rem;
+  }
+
+  .menu-card {
+    width: 260px;
+    height: auto;
+  }
+}
+
+/* Escritorio grande */
+@media (min-width: 993px) {
+  .menu-card {
+    width: 300px;
+    height: 200px;
+  }
+}
+
