@@ -1,6 +1,6 @@
 """
 Django settings for MiFacturaElectronica project.
-Configurado para despliegue en Render.
+Configurado para despliegue en Render (versión optimizada y limpia).
 """
 
 from pathlib import Path
@@ -51,7 +51,7 @@ ROOT_URLCONF = 'MiFacturaElectronica.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'Modulos', 'Facturacion', 'templates', 'Facturacion')],
+        'DIRS': [BASE_DIR / 'Modulos' / 'Facturacion' / 'templates' / 'Facturacion'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -67,7 +67,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'MiFacturaElectronica.wsgi.application'
 
 # =====================================================
-# BASE DE DATOS (Render → PostgreSQL)
+# BASE DE DATOS (Render → PostgreSQL, Local → SQLite)
 # =====================================================
 DATABASES = {
     'default': dj_database_url.config(
@@ -98,15 +98,20 @@ USE_TZ = True
 # ARCHIVOS ESTÁTICOS (Render + Whitenoise)
 # =====================================================
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'Modulos', 'Facturacion', 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Whitenoise servirá los archivos estáticos comprimidos
+# En desarrollo: carga archivos desde tu app
+if DEBUG:
+    STATICFILES_DIRS = [BASE_DIR / 'Modulos' / 'Facturacion' / 'static']
+    STATIC_ROOT = BASE_DIR / 'staticfiles_dev'
+else:
+    # En Render: solo una carpeta limpia
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Whitenoise servirá los archivos comprimidos en producción
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-
 # =====================================================
-# CONFIGURACIÓN DE LOGIN
+# CONFIGURACIÓN DE LOGIN / LOGOUT
 # =====================================================
 LOGIN_REDIRECT_URL = 'menu_principal'
 LOGOUT_REDIRECT_URL = 'login'
@@ -120,7 +125,7 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "manuelito2327@gmail.com"
-EMAIL_HOST_PASSWORD = "kzygnyzhqweihsxh"  # contraseña de aplicación
+EMAIL_HOST_PASSWORD = "kzygnyzhqweihsxh"  # Contraseña de aplicación
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # =====================================================
@@ -129,16 +134,13 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
-# === Archivos estáticos para modo local ===
+# =====================================================
+# AJUSTES EXTRA PARA ENTORNO LOCAL
+# =====================================================
 if DEBUG:
     import mimetypes
     mimetypes.add_type("text/css", ".css", True)
-    STATICFILES_DIRS = [BASE_DIR / 'Modulos' / 'Facturacion' / 'static']
-else:
-    STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# Evita que falle collectstatic en Render si faltan archivos
-if os.environ.get('RENDER'):
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 
