@@ -835,11 +835,11 @@ def registrar_venta(request):
 def enviar_correo_async(email):
     """Envía el correo en un hilo separado para evitar timeout en Render."""
     try:
+        print("🚀 Intentando enviar correo a:", email.to)
         email.send(fail_silently=False)
         print("✅ Correo enviado correctamente (modo async).")
     except Exception as e:
         print(f"❌ Error al enviar correo async: {e}")
-
 
 def enviar_correo(request):
     """Envía el comprobante de venta al correo del cliente con PDF y JSON adjuntos."""
