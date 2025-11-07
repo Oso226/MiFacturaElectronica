@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL RESPONSIVE
+   OMNIGEST - MENÚ PRINCIPAL RESPONSIVE Y CORREGIDO PARA RENDER
    =========================== */
 
 body {
@@ -8,20 +8,19 @@ body {
   font-family: 'Segoe UI', sans-serif;
   color: white;
   min-height: 100vh;
+  background-color: #001437;
   overflow-x: hidden;
-  overflow-y: auto; /* Permite desplazamiento si el contenido es largo */
+  overflow-y: auto; /* permite scroll si el contenido sobrepasa la pantalla */
 }
 
 /* Fondo con logo */
 .hero-container {
   position: relative;
-  min-height: 100vh;
+  min-height: 100%;
   width: 100%;
   background: url("/static/img/logo.png") no-repeat center center / cover;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  display: block; /* ⚡ ya no usa flex (Render lo cortaba) */
+  text-align: center;
 }
 
 /* Capa oscura encima del fondo */
@@ -42,7 +41,6 @@ body {
   z-index: 2;
   margin-top: 40px;
   padding: 0 20px;
-  text-align: center;
 }
 
 .titulo {
@@ -62,18 +60,21 @@ body {
   position: relative;
   z-index: 2;
   margin-top: 70px;
-  margin-bottom: 100px;
+  margin-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
 }
 
-/* Filas de tarjetas */
+/* Fila de tarjetas */
 .fila-superior,
-.fila-inferior,
-.fila-central {
+.fila-central,
+.fila-inferior {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 60px;
-  margin-bottom: 50px;
 }
 
 /* Tarjetas */
@@ -155,12 +156,6 @@ body {
 
 /* Móviles pequeños */
 @media (max-width: 576px) {
-  .hero-container {
-    min-height: 100vh;
-    justify-content: flex-start;
-    padding-bottom: 2rem;
-  }
-
   .titulo {
     font-size: 1.4rem;
   }
@@ -177,16 +172,11 @@ body {
 
   .menu-opciones {
     margin-top: 40px;
+    gap: 30px;
   }
 
   .btn-info {
     width: 100%;
-  }
-
-  .fila-superior,
-  .fila-inferior,
-  .fila-central {
-    gap: 30px;
   }
 }
 
@@ -194,12 +184,6 @@ body {
 @media (min-width: 577px) and (max-width: 992px) {
   .titulo {
     font-size: 1.8rem;
-  }
-
-  .fila-superior,
-  .fila-inferior,
-  .fila-central {
-    gap: 40px;
   }
 
   .menu-card {
