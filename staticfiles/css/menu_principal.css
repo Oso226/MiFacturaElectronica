@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL AJUSTADO FINAL
+   OMNIGEST - MENÚ PRINCIPAL RESPONSIVO FINAL
    =========================== */
 
 body {
@@ -10,20 +10,21 @@ body {
   background: linear-gradient(rgba(0, 15, 40, 0.9), rgba(0, 15, 40, 0.95)),
               url("/static/img/logo.png") no-repeat center center / cover;
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ===== Contenedor principal ===== */
 .hero-container {
   position: relative;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   text-align: center;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 🔹 sube el contenido */
+  justify-content: flex-start;
   align-items: center;
-  padding-top: 0;
+  padding-top: 40px;
 }
 
 /* ===== Barra superior ===== */
@@ -39,7 +40,7 @@ body {
   z-index: 10;
 }
 
-/* ===== Botón cerrar sesión alineado ===== */
+/* ===== Botón cerrar sesión ===== */
 .btn-cerrar {
   background: transparent;
   border: 2px solid #00e5ff;
@@ -61,8 +62,8 @@ body {
 /* ===== Encabezado ===== */
 .header {
   position: relative;
-  margin-top: 80px; /* 🔹 sube el bloque completo */
-  margin-bottom: 20px;
+  margin-top: 90px;
+  margin-bottom: 25px;
 }
 
 .titulo {
@@ -83,7 +84,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 60px;
-  margin-top: -10px; /* 🔹 sube aún más las filas */
+  margin-top: -10px;
 }
 
 /* ===== Filas ===== */
@@ -93,7 +94,7 @@ body {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 120px; /* 🔹 más separación horizontal */
+  gap: 100px;
 }
 
 /* ===== Tarjetas ===== */
@@ -148,19 +149,73 @@ body {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.9);
 }
 
-/* ===== Responsivo ===== */
+/* ======== RESPONSIVE DESIGN ======== */
+
+/* Celulares (≤ 576px) */
 @media (max-width: 576px) {
   .titulo {
     font-size: 1.4rem;
   }
   .subtitulo {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
   .fila-superior,
+  .fila-central,
   .fila-inferior {
-    gap: 40px;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+  }
+  .menu-card {
+    width: 90%;
+    height: auto;
+    padding: 18px;
+  }
+  .btn-cerrar {
+    font-size: 0.85rem;
+    padding: 6px 14px;
   }
 }
+
+/* Tablets (577px – 991px) */
+@media (min-width: 577px) and (max-width: 991px) {
+  .menu-card {
+    width: 260px;
+    height: 180px;
+  }
+  .fila-superior,
+  .fila-central,
+  .fila-inferior {
+    gap: 50px;
+  }
+}
+
+/* Laptops (992px – 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .menu-card {
+    width: 280px;
+    height: 190px;
+  }
+  .fila-superior,
+  .fila-central,
+  .fila-inferior {
+    gap: 70px;
+  }
+}
+
+/* Pantallas grandes (≥ 1200px) */
+@media (min-width: 1200px) {
+  .menu-card {
+    width: 310px;
+    height: 200px;
+  }
+  .fila-superior,
+  .fila-central,
+  .fila-inferior {
+    gap: 100px;
+  }
+}
+
 
 
 
