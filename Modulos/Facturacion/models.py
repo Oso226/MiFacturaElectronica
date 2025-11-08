@@ -2,23 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 from decimal import Decimal
-
-# ======================================================
-# PERFIL DE USUARIO
-# ======================================================
-class Perfil(models.Model):
-    ROLES = [
-        ('Administrador', 'Administrador'),
-        ('Contador', 'Contador'),
-        ('Empleado', 'Empleado'),
-    ]
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    rol = models.CharField(max_length=50, choices=ROLES)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.rol}"
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # ======================================================
 # MODELO EMPRESA
@@ -38,9 +23,43 @@ class Empresa(models.Model):
 
 
 # ======================================================
+# PERFIL DE USUARIO
+# ======================================================
+class Perfil(models.Model):
+    ROLES = [
+        ('Administrador', 'Administrador'),
+        ('Gerente', 'Gerente'),
+        ('Contador', 'Contador'),
+        ('Empleado', 'Empleado'),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    rol = models.CharField(max_length=50, choices=ROLES)
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        empresa = self.empresa.nombre if self.empresa else "Sin empresa"
+        return f"{self.user.username} - {self.rol} ({empresa})"
+
+
+# ======================================================
+# SIGNAL: CREAR PERFIL AUTOMÁTICAMENTE
+# ======================================================
+@receiver(post_save, sender=User)
+def crear_perfil_automatico(sender, instance, created, **kwargs):
+    """
+    Crea un perfil automáticamente para cada nuevo usuario.
+    Si no se le asigna rol o empresa, el rol por defecto es 'Empleado'.
+    """
+    if created:
+        Perfil.objects.create(user=instance, rol='Empleado')
+
+
+# ======================================================
 # MODELO CLIENTE
 # ======================================================
 class Cliente(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
     nombre = models.CharField(max_length=120)
     nit = models.CharField(max_length=20)
     nrc = models.CharField(max_length=20, blank=True, null=True)
@@ -60,6 +79,7 @@ class Cliente(models.Model):
 # MODELO PRODUCTO
 # ======================================================
 class Producto(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
     codigo = models.CharField(max_length=20, unique=True)
     descripcion = models.CharField(max_length=150)
     unidad_medida = models.CharField(max_length=10, default='C/U')
@@ -68,6 +88,23 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.descripcion} (${self.precio_unitario})"
+
+
+# ======================================================
+# MODELO PROVEEDOR
+# ======================================================
+class Proveedor(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
+    nombre = models.CharField(max_length=120)
+    nit = models.CharField(max_length=20, unique=True)
+    nrc = models.CharField(max_length=20, blank=True, null=True)
+    direccion = models.TextField()
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    correo = models.EmailField(blank=True, null=True)
+    representante = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return self.nombre
 
 
 # ======================================================
@@ -89,7 +126,7 @@ class DTE(models.Model):
 
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # 🔹 quién emitió
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     tipo_dte = models.CharField(max_length=2, choices=TIPO_DTE_CHOICES, default='01')
     numero_control = models.CharField(max_length=50, unique=True)
     fecha_emision = models.DateTimeField(auto_now_add=True)
@@ -107,7 +144,7 @@ class DTE(models.Model):
         return f"{self.get_tipo_dte_display()} - {self.numero_control}"
 
     def actualizar_totales(self):
-        """Recalcula subtotal, IVA y total en base a los detalles"""
+        """Recalcula subtotal, IVA y total según los detalles."""
         detalles = self.detalles.all()
         subtotal = sum(d.total_item for d in detalles)
         iva = subtotal * Decimal('0.13')
@@ -133,30 +170,13 @@ class DetalleDTE(models.Model):
     total_item = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
 
     def save(self, *args, **kwargs):
-        """Calcula el total del item antes de guardar"""
+        """Calcula el total del ítem antes de guardar."""
         self.total_item = self.cantidad * self.precio_unitario
         super().save(*args, **kwargs)
-        # Actualiza totales del DTE
         self.dte.actualizar_totales()
 
     def __str__(self):
         return f"{self.producto.descripcion} ({self.cantidad})"
-
-
-# ======================================================
-# MODELO PROVEEDOR
-# ======================================================
-class Proveedor(models.Model):
-    nombre = models.CharField(max_length=120)
-    nit = models.CharField(max_length=20, unique=True)
-    nrc = models.CharField(max_length=20, blank=True, null=True)
-    direccion = models.TextField()
-    telefono = models.CharField(max_length=20, blank=True, null=True)
-    correo = models.EmailField(blank=True, null=True)
-    representante = models.CharField(max_length=100, blank=True, null=True)
-
-    def __str__(self):
-        return self.nombre
 
 
 # ======================================================
@@ -169,9 +189,7 @@ class Inventario(models.Model):
     ]
 
     producto = models.ForeignKey(
-        Producto,
-        on_delete=models.CASCADE,
-        related_name='movimientos_inventario'
+        Producto, on_delete=models.CASCADE, related_name='movimientos_inventario'
     )
     tipo = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO)
     cantidad = models.IntegerField()
@@ -182,6 +200,7 @@ class Inventario(models.Model):
         return f"{self.tipo} - {self.producto.descripcion} ({self.cantidad})"
 
     def save(self, *args, **kwargs):
+        """Actualiza inventario del producto automáticamente."""
         super().save(*args, **kwargs)
         if self.tipo == 'Entrada':
             self.producto.inventario += self.cantidad
@@ -194,6 +213,7 @@ class Inventario(models.Model):
 # MODELO COMPRA (para Libro de Compras)
 # ======================================================
 class Compra(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
     fecha = models.DateTimeField(default=now)
     comprobante_numero = models.CharField(max_length=50)
     registro_nrc = models.CharField(max_length=20)

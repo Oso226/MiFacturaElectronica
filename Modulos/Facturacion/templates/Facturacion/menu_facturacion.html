@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menú de Facturación</title>
+  <title>Menú de Facturación | OMNIGEST</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/menu_facturacion.css' %}">
@@ -18,12 +18,16 @@
 
     <!-- BOTONES DTE -->
     <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
-      <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="01">Factura (01)</button>
-      <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="03">CCF (03)</button>
-      <button class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="05">Nota Crédito (05)</button>
-      <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="06">Nota Débito (06)</button>
-      <button class="btn btn-secondary btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="07">Retención (07)</button>
-      <button class="btn btn-dark btn-lg" data-bs-toggle="modal" data-bs-target="#modalDTE" data-tipo="11">Liquidación (11)</button>
+      <button class="btn btn-primary btn-lg" data-tipo="01">Factura (01)</button>
+      <button class="btn btn-success btn-lg" data-tipo="03">CCF (03)</button>
+      <button class="btn btn-warning btn-lg" data-tipo="05">Nota Crédito (05)</button>
+      <button class="btn btn-info btn-lg" data-tipo="06">Nota Débito (06)</button>
+      <button class="btn btn-secondary btn-lg" data-tipo="07">Retención (07)</button>
+      <button class="btn btn-dark btn-lg" data-tipo="11">Liquidación (11)</button>
+
+      {% if rol == "Administrador" or rol == "Gerente" %}
+        <button class="btn btn-outline-danger btn-lg" id="btnEditarDTE">✏️ Editar Documento</button>
+      {% endif %}
     </div>
 
     <!-- BARRA DE BÚSQUEDA -->
@@ -38,18 +42,19 @@
         <thead>
           <tr class="bg-dark text-white">
             <th>#</th>
+            <th>Seleccionar</th>
             <th>Tipo DTE</th>
             <th>Número Control</th>
             <th>Cliente</th>
             <th>Fecha</th>
             <th>Total</th>
             <th>Estado</th>
-            <th>Editar</th>
+            <th>Acción</th>
           </tr>
         </thead>
         <tbody id="tbodyResultados">
           <tr>
-            <td colspan="8" class="text-muted">Ingrese texto en el buscador para filtrar documentos...</td>
+            <td colspan="9" class="text-muted">Ingrese texto en el buscador para filtrar documentos...</td>
           </tr>
         </tbody>
       </table>
@@ -61,16 +66,16 @@
   </div>
 </div>
 
-<!-- Modal DTE -->
+<!-- MODAL PRINCIPAL DTE -->
 <div class="modal fade" id="modalDTE" tabindex="-1" aria-labelledby="modalDTELabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content p-0 border-0 shadow-none bg-white">
+    <div class="modal-content p-0 border-0 shadow bg-white">
       <div class="modal-body p-0" id="contenidoDTE" style="max-height: 90vh; overflow-y: auto;"></div>
     </div>
   </div>
 </div>
 
-<!-- Modal de envío de correo -->
+<!-- MODAL ENVÍO CORREO -->
 <div class="modal fade" id="modalEnvioCorreo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content text-center p-4 bg-white shadow">
@@ -82,23 +87,28 @@
   </div>
 </div>
 
-<!-- Modal de edición de cliente -->
-<div class="modal fade" id="modalEditarCliente" tabindex="-1" aria-hidden="true">
+<!-- MODAL EDICIÓN DATOS CLIENTE -->
+<div class="modal fade" id="modalEditarDatosDTE" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-4 bg-white shadow">
       <h5 class="text-primary fw-bold mb-3">✏️ Editar datos del cliente</h5>
-      <form id="formEditarCliente">
-        <div class="mb-3">
-          <label class="form-label">Correo</label>
-          <input type="email" class="form-control" id="editCorreo">
+      <form id="formEditarDatosDTE">
+        <input type="hidden" id="editDteId">
+        <div class="mb-3 text-start">
+          <label class="form-label fw-semibold">Nombre</label>
+          <input type="text" class="form-control" id="editNombre" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">NIT</label>
-          <input type="text" class="form-control" id="editNIT">
+        <div class="mb-3 text-start">
+          <label class="form-label fw-semibold">Correo</label>
+          <input type="email" class="form-control" id="editCorreo" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Dirección</label>
-          <textarea class="form-control" id="editDireccion" rows="2"></textarea>
+        <div class="mb-3 text-start">
+          <label class="form-label fw-semibold">NIT</label>
+          <input type="text" class="form-control" id="editNIT" required>
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label fw-semibold">Dirección</label>
+          <textarea class="form-control" id="editDireccion" rows="2" required></textarea>
         </div>
         <div class="text-end">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -115,144 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalDTE = document.getElementById('modalDTE');
   const contenedor = document.getElementById('contenidoDTE');
 
-  const ventaGuardada = sessionStorage.getItem('ventaCompleta');
-  let venta = ventaGuardada ? JSON.parse(ventaGuardada) : null;
-
-  // ✅ BOTONES DE NUEVO DTE (Factura, CCF, etc.)
-  document.querySelectorAll('[data-bs-target="#modalDTE"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const tipo = btn.getAttribute('data-tipo');
-      contenedor.innerHTML = '<div class="text-center py-5 text-muted">Generando documento electrónico...</div>';
-
-      try {
-        const opciones = venta ? {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content
-          },
-          body: JSON.stringify(venta)
-        } : {};
-
-        const res = await fetch(`/dte/modal/${tipo}/`, opciones);
-        const html = await res.text();
-        contenedor.innerHTML = html;
-
-        if (venta) {
-          const producto = venta.producto;
-          const tabla = contenedor.querySelector("tbody");
-          if (tabla) {
-            tabla.innerHTML = `
-              <tr>
-                <td>1</td>
-                <td>${producto.id}</td>
-                <td>${producto.nombre}</td>
-                <td>${producto.cantidad}</td>
-                <td>$${producto.precio.toFixed(2)}</td>
-                <td>$${(producto.precio * producto.cantidad).toFixed(2)}</td>
-              </tr>
-            `;
-          }
-
-          // 🔹 Normalizar datos para envío
-          venta.tipo_dte = tipo;
-          venta.subtotal = producto.precio * producto.cantidad;
-          venta.iva = venta.subtotal * 0.13;
-          venta.total = venta.subtotal + venta.iva;
-
-          const btnGenerar = contenedor.querySelector("button.btn-primary");
-          const notaSimulacion = contenedor.querySelector("small.text-muted");
-          if (btnGenerar) btnGenerar.remove();
-          if (notaSimulacion) notaSimulacion.remove();
-
-          const modal = new bootstrap.Modal(modalDTE);
-          modal.show();
-
-          // ⏳ Cierre automático + envío de correo
-          setTimeout(() => {
-            modal.hide();
-            mostrarModalEnvio();
-            enviarComprobanteCorreo(venta);
-            sessionStorage.removeItem('ventaCompleta');
-          }, 4000);
-        } else {
-          new bootstrap.Modal(modalDTE).show();
-        }
-
-      } catch (err) {
-        contenedor.innerHTML = '<div class="alert alert-danger">❌ Error al generar el DTE.</div>';
-        console.error("Error al generar documento:", err);
-      }
-    });
-  });
-
-  // ✅ MODAL DE ENVÍO DE CORREO
-  function mostrarModalEnvio() {
-    const modal = new bootstrap.Modal(document.getElementById('modalEnvioCorreo'));
-    const estado = document.getElementById('estadoEnvio');
-    estado.innerHTML = `
-      <div class="spinner-border text-primary mb-3" role="status"></div>
-      <h5 class="mb-2 text-primary">Enviando comprobante al cliente...</h5>
-    `;
-    modal.show();
-  }
-
-  // ✅ CORRECCIÓN: enviar todos los datos reales
-  function enviarComprobanteCorreo(venta) {
-    fetch("/enviar-correo/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content
-      },
-      body: JSON.stringify({
-        tipo_dte: venta.tipo_dte,
-        correo: venta.correo || venta.cliente?.correo || "cliente@ejemplo.com",
-        cliente: venta.nuevoCliente || venta.cliente?.nombre || venta.clienteId,
-        producto: venta.producto?.nombre || "Producto",
-        cantidad: venta.producto?.cantidad || 1,
-        precio_unitario: venta.producto?.precio || 0,
-        subtotal: venta.subtotal,
-        iva: venta.iva,
-        total: venta.total
-      })
-    })
-    .then(r => r.json())
-    .then(data => {
-      const estado = document.getElementById('estadoEnvio');
-      if (data.status === "ok") {
-        estado.innerHTML = `
-          <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i>
-          <h5 class="text-success">Correo enviado correctamente</h5>
-          <p class="text-muted">El comprobante ha sido entregado al cliente.</p>
-        `;
-      } else {
-        estado.innerHTML = `
-          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3"></i>
-          <h5 class="text-danger">Error al enviar el correo</h5>
-          <p>${data.msg}</p>
-        `;
-      }
-      setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('modalEnvioCorreo')).hide(), 3000);
-    })
-    .catch(err => {
-      const estado = document.getElementById('estadoEnvio');
-      estado.innerHTML = `
-        <i class="bi bi-x-circle-fill text-danger fs-1 mb-3"></i>
-        <h5 class="text-danger">Fallo de conexión</h5>
-        <p>${err}</p>
-      `;
-      setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('modalEnvioCorreo')).hide(), 3000);
-    });
-  }
-
-  // ✅ BUSCADOR DTE
+  // === BUSCADOR DTE ===
   document.getElementById("buscarDTE").addEventListener("input", async (e) => {
     const query = e.target.value.trim();
     const tbody = document.getElementById("tbodyResultados");
 
     if (query.length < 2) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-muted">Ingrese texto en el buscador para filtrar documentos...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Ingrese texto en el buscador...</td></tr>';
       return;
     }
 
@@ -261,53 +140,188 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (!data.resultados || data.resultados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No se encontraron resultados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted">No se encontraron resultados.</td></tr>';
         return;
       }
 
       tbody.innerHTML = data.resultados.map((d, i) => `
         <tr>
           <td>${i + 1}</td>
+          <td><input type="checkbox" class="form-check-input seleccionar-dte" data-id="${d.id}"></td>
           <td>${d.tipo_dte}</td>
           <td>${d.numero_control}</td>
           <td>${d.cliente}</td>
           <td>${d.fecha}</td>
           <td>$${d.total}</td>
           <td>${d.estado}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${d.id}">Editar</button>
-          </td>
+          <td><button class="btn btn-sm btn-outline-info btn-ver" data-id="${d.id}">Ver</button></td>
         </tr>
       `).join('');
 
-      // ✅ Botón Editar
-      document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-id');
-          contenedor.innerHTML = '<div class="text-center py-5 text-muted">Cargando documento...</div>';
-          const modal = new bootstrap.Modal(modalDTE);
-
-          try {
-            const res = await fetch(`/dte/ver/${id}/`);
-            const html = await res.text();
-            contenedor.innerHTML = html;
-            modal.show();
-          } catch (err) {
-            contenedor.innerHTML = '<div class="alert alert-danger">❌ Error al cargar el DTE.</div>';
-            console.error("Error al abrir DTE:", err);
+      // ✅ Solo un checkbox activo a la vez
+      document.querySelectorAll('.seleccionar-dte').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            document.querySelectorAll('.seleccionar-dte').forEach(otro => {
+              if (otro !== e.target) otro.checked = false;
+            });
           }
         });
       });
 
+      // ✅ Ver DTE en modal
+      document.querySelectorAll('.btn-ver').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          contenedor.innerHTML = '<div class="text-center py-5 text-muted">Cargando documento...</div>';
+          const modal = new bootstrap.Modal(modalDTE);
+          const res = await fetch(`/dte/ver/${id}/`);
+          contenedor.innerHTML = await res.text();
+          modal.show();
+        });
+      });
     } catch (err) {
       console.error("Error al buscar DTE:", err);
-      tbody.innerHTML = '<tr><td colspan="8" class="text-danger">Error al buscar documentos.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-danger">Error al buscar documentos.</td></tr>';
     }
+  });
+
+  // === EDITAR DOCUMENTO ===
+  const btnEditarDTE = document.getElementById('btnEditarDTE');
+  if (btnEditarDTE) {
+    btnEditarDTE.addEventListener('click', async () => {
+      const seleccionado = document.querySelector('.seleccionar-dte:checked');
+      if (!seleccionado) {
+        alert("Por favor selecciona un documento para editar.");
+        return;
+      }
+
+      const id = seleccionado.dataset.id;
+
+      try {
+        const res = await fetch(`/dte/ver/${id}/json/`);
+        if (!res.ok) throw new Error("No se pudo cargar los datos del DTE.");
+        const dte = await res.json();
+
+        // Llenar modal
+        document.getElementById('editDteId').value = dte.id;
+        document.getElementById('editNombre').value = dte.cliente_nombre || '';
+        document.getElementById('editCorreo').value = dte.cliente_correo || '';
+        document.getElementById('editNIT').value = dte.cliente_nit || '';
+        document.getElementById('editDireccion').value = dte.cliente_direccion || '';
+
+        new bootstrap.Modal(document.getElementById('modalEditarDatosDTE')).show();
+      } catch (err) {
+        alert("❌ Error al cargar el DTE: " + err.message);
+        console.error(err);
+      }
+    });
+  }
+
+  // === GUARDAR CAMBIOS EN EL DTE ===
+  document.getElementById('formEditarDatosDTE').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editDteId').value;
+    const modalEnvio = new bootstrap.Modal(document.getElementById('modalEnvioCorreo'));
+    const estadoEnvio = document.getElementById('estadoEnvio');
+    const data = {
+      nombre: document.getElementById('editNombre').value,
+      correo: document.getElementById('editCorreo').value,
+      nit: document.getElementById('editNIT').value,
+      direccion: document.getElementById('editDireccion').value
+    };
+
+    estadoEnvio.innerHTML = `
+      <div class="spinner-border text-primary mb-3" role="status"></div>
+      <h5 class="mb-2 text-primary">Reenviando comprobante actualizado...</h5>
+    `;
+    modalEnvio.show();
+
+    try {
+      const res = await fetch(`/dte/editar-datos/${id}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      if (result.status === "ok") {
+        estadoEnvio.innerHTML = `
+          <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+          <h5 class="mt-3 text-success">¡Reenvío exitoso!</h5>
+          <p class="text-muted">El comprobante actualizado fue enviado al correo del cliente.</p>
+        `;
+        setTimeout(() => window.location.reload(), 4000);
+      } else {
+        estadoEnvio.innerHTML = `
+          <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+          <h5 class="mt-3 text-danger">Error al reenviar</h5>
+          <p class="text-muted">${result.msg}</p>
+        `;
+      }
+    } catch (err) {
+      estadoEnvio.innerHTML = `
+        <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+        <h5 class="mt-3 text-danger">Fallo de conexión</h5>
+        <p class="text-muted">${err.message}</p>
+      `;
+    }
+    setTimeout(() => modalEnvio.hide(), 5000);
+  });
+
+  // === SIMULACIÓN DE ENVÍO AL MH DESDE BOTONES ===
+  document.querySelectorAll('[data-tipo]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const tipo = e.target.getAttribute('data-tipo');
+      const modalEnvio = new bootstrap.Modal(document.getElementById('modalEnvioCorreo'));
+      const estadoEnvio = document.getElementById('estadoEnvio');
+      
+      estadoEnvio.innerHTML = `
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="mb-2 text-primary">Enviando comprobante al Ministerio de Hacienda...</h5>
+      `;
+      modalEnvio.show();
+
+      setTimeout(async () => {
+        try {
+          const res = await fetch(`/dte/generar/${tipo}/`);
+          const data = await res.json();
+
+          if (data.success) {
+            estadoEnvio.innerHTML = `
+              <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+              <h5 class="mt-3 text-success">¡Envío exitoso!</h5>
+              <p class="text-muted">El comprobante fue enviado al correo del cliente.</p>
+            `;
+          } else {
+            estadoEnvio.innerHTML = `
+              <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+              <h5 class="mt-3 text-danger">Error al generar el comprobante</h5>
+              <p class="text-muted">${data.error || "Error desconocido."}</p>
+            `;
+          }
+        } catch (err) {
+          estadoEnvio.innerHTML = `
+            <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+            <h5 class="mt-3 text-danger">Fallo de conexión</h5>
+            <p class="text-muted">${err.message}</p>
+          `;
+        }
+        setTimeout(() => modalEnvio.hide(), 5000);
+      }, 5000);
+    });
   });
 });
 </script>
 </body>
 </html>
+
+
+
+
 
 
 

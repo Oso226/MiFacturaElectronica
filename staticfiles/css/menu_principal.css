@@ -1,5 +1,5 @@
 /* ===========================
-   OMNIGEST - MENÚ PRINCIPAL COMPATIBLE CON RENDER
+   OMNIGEST - MENÚ PRINCIPAL AJUSTADO FINAL
    =========================== */
 
 body {
@@ -9,21 +9,60 @@ body {
   color: white;
   background: linear-gradient(rgba(0, 15, 40, 0.9), rgba(0, 15, 40, 0.95)),
               url("/static/img/logo.png") no-repeat center center / cover;
-  min-height: 100vh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* Estructura principal */
+/* ===== Contenedor principal ===== */
 .hero-container {
+  position: relative;
   width: 100%;
-  padding: 60px 20px;
+  height: 100vh;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 🔹 sube el contenido */
+  align-items: center;
+  padding-top: 0;
 }
 
-/* Encabezado */
+/* ===== Barra superior ===== */
+.d-flex {
+  position: absolute;
+  top: 15px;
+  left: 0;
+  width: 100%;
+  padding: 0 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+/* ===== Botón cerrar sesión alineado ===== */
+.btn-cerrar {
+  background: transparent;
+  border: 2px solid #00e5ff;
+  color: #00e5ff;
+  font-weight: bold;
+  border-radius: 25px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  transition: 0.3s;
+  margin-top: 5px;
+}
+
+.btn-cerrar:hover {
+  background-color: #00e5ff;
+  color: #001437;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
+}
+
+/* ===== Encabezado ===== */
 .header {
-  margin-bottom: 60px;
+  position: relative;
+  margin-top: 80px; /* 🔹 sube el bloque completo */
+  margin-bottom: 20px;
 }
 
 .titulo {
@@ -38,26 +77,26 @@ body {
   font-size: 1.1rem;
 }
 
-/* Contenedor de menús */
+/* ===== Contenedor de tarjetas ===== */
 .menu-opciones {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 50px;
-  margin-bottom: 100px;
+  gap: 60px;
+  margin-top: -10px; /* 🔹 sube aún más las filas */
 }
 
-/* Filas */
+/* ===== Filas ===== */
 .fila-superior,
 .fila-central,
 .fila-inferior {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 60px;
+  gap: 120px; /* 🔹 más separación horizontal */
 }
 
-/* Tarjetas */
+/* ===== Tarjetas ===== */
 .menu-card {
   background-color: rgba(0, 188, 212, 0.88);
   border: none;
@@ -66,7 +105,7 @@ body {
   transition: all 0.3s ease-in-out;
   box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
   padding: 20px;
-  width: 280px;
+  width: 310px;
   height: 200px;
   text-align: center;
 }
@@ -90,7 +129,7 @@ body {
   font-weight: 600;
 }
 
-/* Botones */
+/* ===== Botones internos ===== */
 .btn-info {
   background-color: white;
   border: none;
@@ -109,72 +148,19 @@ body {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.9);
 }
 
-/* Botón cerrar sesión */
-.btn-cerrar {
-  position: fixed;
-  top: 25px;
-  right: 40px;
-  background: transparent;
-  border: 2px solid #00e5ff;
-  color: #00e5ff;
-  font-weight: bold;
-  border-radius: 25px;
-  padding: 8px 20px;
-  font-size: 1rem;
-  z-index: 5;
-  transition: 0.3s;
-}
-
-.btn-cerrar:hover {
-  background-color: #00e5ff;
-  color: #001437;
-  box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
-}
-
-/* ===== Responsive ===== */
-
-/* Móviles pequeños */
+/* ===== Responsivo ===== */
 @media (max-width: 576px) {
   .titulo {
     font-size: 1.4rem;
   }
-
   .subtitulo {
     font-size: 0.95rem;
   }
-
-  .menu-card {
-    width: 90%;
-    height: auto;
-    padding: 20px 10px;
-  }
-
-  .menu-opciones {
-    gap: 30px;
-  }
-
-  .btn-info {
-    width: 100%;
+  .fila-superior,
+  .fila-inferior {
+    gap: 40px;
   }
 }
 
-/* Tablets */
-@media (min-width: 577px) and (max-width: 992px) {
-  .titulo {
-    font-size: 1.8rem;
-  }
 
-  .menu-card {
-    width: 260px;
-    height: auto;
-  }
-}
-
-/* Escritorio grande */
-@media (min-width: 993px) {
-  .menu-card {
-    width: 300px;
-    height: 200px;
-  }
-}
 

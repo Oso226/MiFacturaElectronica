@@ -1,23 +1,23 @@
 """
 Django settings for MiFacturaElectronica project.
-Configurado para despliegue en Render (versión optimizada y limpia).
+Optimizado para Render, multiempresa y seguridad.
 """
 
 from pathlib import Path
 import os
 import dj_database_url
 
+# =====================================================
+# BASE Y SEGURIDAD
+# =====================================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# =====================================================
-# SEGURIDAD Y CONFIGURACIÓN BÁSICA
-# =====================================================
 SECRET_KEY = os.getenv('SECRET_KEY', 'clave-secreta-local')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = ['*']  # Render asigna el dominio automáticamente
+ALLOWED_HOSTS = ['*']  # Render asigna dominio automáticamente
 
 # =====================================================
-# APLICACIONES
+# APLICACIONES INSTALADAS
 # =====================================================
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -67,7 +67,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'MiFacturaElectronica.wsgi.application'
 
 # =====================================================
-# BASE DE DATOS (Render → PostgreSQL, Local → SQLite)
+# BASE DE DATOS
 # =====================================================
 DATABASES = {
     'default': dj_database_url.config(
@@ -95,30 +95,31 @@ USE_I18N = True
 USE_TZ = True
 
 # =====================================================
-# ARCHIVOS ESTÁTICOS (Render + Whitenoise)
+# ARCHIVOS ESTÁTICOS Y MULTIMEDIA
 # =====================================================
 STATIC_URL = '/static/'
 
-# En desarrollo: carga archivos desde tu app
 if DEBUG:
     STATICFILES_DIRS = [BASE_DIR / 'Modulos' / 'Facturacion' / 'static']
     STATIC_ROOT = BASE_DIR / 'staticfiles_dev'
 else:
-    # En Render: solo una carpeta limpia
     STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Whitenoise servirá los archivos comprimidos en producción
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# 📦 Archivos de usuario (PDF, imágenes, etc.)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # =====================================================
-# CONFIGURACIÓN DE LOGIN / LOGOUT
+# LOGIN / LOGOUT
 # =====================================================
 LOGIN_REDIRECT_URL = 'menu_principal'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
 # =====================================================
-# CORREO ELECTRÓNICO (Gmail)
+# CORREO ELECTRÓNICO
 # =====================================================
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -126,21 +127,28 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "manuelito2327@gmail.com"
 EMAIL_HOST_PASSWORD = "kzygnyzhqweihsxh"  # Contraseña de aplicación
+EMAIL_TIMEOUT = 30
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # =====================================================
-# CONFIGURACIÓN DE SEGURIDAD PARA RENDER
+# SEGURIDAD PARA RENDER
 # =====================================================
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
 # =====================================================
-# AJUSTES EXTRA PARA ENTORNO LOCAL
+# OTROS AJUSTES
 # =====================================================
 if DEBUG:
     import mimetypes
     mimetypes.add_type("text/css", ".css", True)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+PISA_DEFAULT_CSS = os.path.join(BASE_DIR, 'static/css/factura01.css')
+
 
 

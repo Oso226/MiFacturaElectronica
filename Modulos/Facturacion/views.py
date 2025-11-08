@@ -46,6 +46,7 @@ import os
 from datetime import datetime
 from .models import Cliente, DTE, DetalleDTE, Empresa
 import threading
+from weasyprint import HTML, CSS
 
 
 # ======================================================
@@ -53,6 +54,10 @@ import threading
 # ======================================================
 
 def iniciar_sesion(request):
+    """
+    Inicia sesión de usuario verificando rol y empresa asociada.
+    Si el usuario ya está autenticado, lo redirige a su menú principal.
+    """
     if request.user.is_authenticated:
         return redirect('menu_principal')
 
@@ -63,37 +68,70 @@ def iniciar_sesion(request):
 
         if user is not None:
             login(request, user)
-            messages.success(request, "Inicio de sesión exitoso.")
+
+            # 🔹 Cargar perfil asociado al usuario
+            perfil = Perfil.objects.filter(user=user).select_related('empresa').first()
+
+            # 🔒 Validar si el perfil existe
+            if not perfil:
+                logout(request)
+                messages.error(request, "El usuario no tiene un perfil asignado.")
+                return redirect('login')
+
+            # 🔒 Validar si el usuario tiene empresa (multiempresa)
+            if not perfil.empresa:
+                messages.warning(request, "No se encontró empresa asignada al usuario.")
+            else:
+                request.session['empresa_id'] = perfil.empresa.id
+
+            messages.success(request, f"Inicio de sesión exitoso como {perfil.rol}.")
             return redirect('menu_principal')
         else:
             messages.error(request, "Usuario o contraseña incorrectos.")
+
     return render(request, 'registration/login.html')
 
 
 def cerrar_sesion(request):
+    """
+    Cierra la sesión del usuario actual y limpia los datos de sesión.
+    """
+    if 'empresa_id' in request.session:
+        del request.session['empresa_id']
     logout(request)
     messages.success(request, "Sesión cerrada correctamente.")
     return redirect('login')
 
 
 def registro(request):
+    """
+    Registra un nuevo usuario con su rol y crea automáticamente el perfil.
+    Por seguridad, puede deshabilitarse el acceso público en producción.
+    """
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password1')
         rol = request.POST.get('rol')
+        empresa_id = request.POST.get('empresa')  # opcional si se asigna desde admin
 
         if User.objects.filter(username=username).exists():
             messages.error(request, "El nombre de usuario ya existe.")
         else:
             user = User.objects.create_user(username=username, password=password)
-            perfil = Perfil.objects.get(user=user)
-            perfil.rol = rol
-            perfil.save()
+            perfil = Perfil.objects.create(user=user, rol=rol)
+
+            # 🔹 Si se envía empresa desde el formulario
+            if empresa_id:
+                from .models import Empresa
+                empresa = Empresa.objects.filter(id=empresa_id).first()
+                if empresa:
+                    perfil.empresa = empresa
+                    perfil.save()
+
             messages.success(request, f"Usuario '{username}' registrado exitosamente como {rol}.")
             return redirect('login')
 
     return render(request, 'registration/registro.html')
-
 
 # ======================================================
 # 🧭 MENÚ PRINCIPAL
@@ -101,27 +139,50 @@ def registro(request):
 
 @login_required
 def menu_principal(request):
-    perfil = Perfil.objects.get(user=request.user)
-    return render(request, 'Facturacion/menu_principal.html', {'rol': perfil.rol})
+    """
+    Muestra el menú principal con el rol y empresa del usuario logueado.
+    No genera error si el perfil no tiene empresa asignada.
+    """
+    perfil = Perfil.objects.select_related('empresa').filter(user=request.user).first()
 
+    # Si no hay perfil asociado al usuario
+    if not perfil:
+        messages.error(request, "No se encontró un perfil asociado al usuario.")
+        return redirect('logout')
 
-# ======================================================
-# 🧾 FACTURACIÓN
-# ======================================================
+    # Si el perfil no tiene empresa, evitar error 500
+    if not perfil.empresa:
+        empresa_nombre = "Sin empresa asignada"
+    else:
+        empresa_nombre = perfil.empresa.nombre
+        request.session['empresa_id'] = perfil.empresa.id  # Guardar en sesión
 
+    # 🔹 Contexto enviado al template
+    contexto = {
+        'rol': perfil.rol,
+        'empresa': empresa_nombre
+    }
+
+    print("Rol:", perfil.rol)
+    print("Empresa mostrada:", empresa_nombre)
+
+    return render(request, 'Facturacion/menu_principal.html', contexto)
+
+# 📄 Lista de documentos emitidos
 @rol_requerido(['Administrador', 'Contador', 'Empleado'])
 def lista_dte(request):
-    dtes = DTE.objects.all()
+    dtes = DTE.objects.all().order_by('-fecha_emision')
     return render(request, 'Facturacion/lista_dte.html', {'dtes': dtes})
 
 
+# 🧾 Crear nuevo documento
 @rol_requerido(['Administrador', 'Empleado'])
 def crear_dte(request, tipo_dte=None):
     if not tipo_dte:
         messages.warning(request, "Debes seleccionar un tipo de documento.")
-        return redirect('menu_principal')
+        return redirect('menu_facturacion')
 
-    # 🔹 Ajuste de rutas (ya no existe carpeta forms)
+    # 🔹 Ajuste de rutas de plantillas
     plantillas_dte = {
         '01': 'Facturacion/factura01.html',
         '03': 'Facturacion/ccf03.html',
@@ -135,15 +196,17 @@ def crear_dte(request, tipo_dte=None):
     return render(request, template, {'tipo_dte': tipo_dte})
 
 
+# ❌ Anular documento
 @rol_requerido(['Administrador', 'Contador'])
 def anular_dte(request, id):
     dte = get_object_or_404(DTE, id=id)
     dte.estado = 'Anulado'
     dte.save()
-    messages.success(request, f'Documento {dte.numero_control} ha sido anulado.')
+    messages.success(request, f'Documento {dte.numero_control} ha sido anulado correctamente.')
     return redirect('lista_dte')
 
 
+# 📊 Reporte de ventas
 @rol_requerido(['Administrador', 'Contador'])
 def reporte_ventas(request):
     dtes = DTE.objects.filter(estado='Activo').order_by('-fecha_emision')
@@ -153,14 +216,23 @@ def reporte_ventas(request):
         'total': total_general
     })
 
+
+# 🧭 Menú principal de facturación
 @login_required
 def menu_facturacion(request):
-    """ Muestra menú general de facturación """
-    return render(request, 'Facturacion/menu_facturacion.html')
+    """ Muestra menú general de facturación con diseño coherente """
+    perfil = getattr(request.user, 'perfil', None)
+    rol = perfil.rol if perfil else 'Sin Rol'
+
+    return render(request, 'Facturacion/menu_facturacion.html', {
+        'rol': rol,
+        'empresa': getattr(perfil, 'empresa', 'Sin empresa asignada')
+    })
 
 
+# 🧾 Vista individual de factura tipo 01
+@login_required
 def nueva_factura(request, tipo):
-    """ Vista individual de factura tipo 01 """
     dte = get_object_or_404(DTE, tipo_dte=tipo)
     return render(request, 'Facturacion/factura01.html', {
         'dte': dte,
@@ -168,42 +240,234 @@ def nueva_factura(request, tipo):
         'cliente': dte.cliente
     })
 
-from django.views.decorators.csrf import csrf_exempt
-from django.core.mail import send_mail
-import time
 
+# ======================================================
+# ⚙️ GENERAR DTE (Simulación de envío con PDF y JSON)
+# ======================================================
 @csrf_exempt
 @login_required
 def generar_dte(request, tipo):
     """
-    Simula envío del DTE al Ministerio y envío por correo al cliente.
+    Simula el envío del DTE al Ministerio y envía al cliente:
+    - El aviso de aprobación.
+    - Adjuntos: comprobante en PDF y JSON.
     """
     try:
         dte = DTE.objects.filter(tipo_dte=tipo).last()
         if not dte:
             return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
 
-        # Simulación de envío al Ministerio
+        # ⏳ Simulación de tiempo de procesamiento
         time.sleep(2)
+
+        # 🔹 Generar códigos simulados
         dte.codigo_generacion = "MH-" + str(int(time.time()))
         dte.sello_recepcion = "SELLO-" + str(int(time.time()))
         dte.save()
 
-        # Envío de correo (simulado)
+        # 🔹 Crear JSON con los datos del DTE
+        import tempfile, json
+        json_path = tempfile.gettempdir() + f"\\DTE_{dte.numero_control}.json"
+
+        dte_json = {
+            "tipo_dte": dte.tipo_dte,
+            "numero_control": dte.numero_control,
+            "cliente": dte.cliente.nombre if dte.cliente else "Sin cliente",
+            "correo": dte.cliente.correo if dte.cliente else "",
+            "fecha_emision": dte.fecha_emision.strftime("%Y-%m-%d"),
+            "total": float(dte.total),
+            "codigo_generacion": dte.codigo_generacion,
+            "sello_recepcion": dte.sello_recepcion,
+        }
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(dte_json, f, ensure_ascii=False, indent=4)
+
+        # 🔹 Generar PDF con la plantilla oficial (factura01.html)
+        from io import BytesIO
+        from django.template.loader import render_to_string
+        from xhtml2pdf import pisa
+
+        pdf_buffer = BytesIO()
+        # 📄 Renderizar la factura con tu plantilla HTML original
+        html_content = render_to_string("Facturacion/factura01.html", {
+            "dte": dte,
+            "empresa": dte.empresa,
+            "cliente": dte.cliente,
+            "editable": False,
+            "qr_data": None,
+        })
+
+        # 🎨 Agregar tus estilos CSS reales
+        css_path = os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css')
+        pdf_buffer = BytesIO()
+
+        # 🖨️ Generar PDF con WeasyPrint (idéntico a lo que ves en el navegador)
+        HTML(string=html_content, base_url=request.build_absolute_uri("/")).write_pdf(
+        pdf_buffer, stylesheets=[CSS(filename=css_path)]
+    )
+
+        pdf_buffer.seek(0)
+
+        # 🔹 Envío de correo al cliente
         if dte.cliente and dte.cliente.correo:
-            send_mail(
-                subject="Comprobante Electrónico Aprobado",
-                message=f"Estimado {dte.cliente.nombre}, su documento {dte.get_tipo_dte_display()} ha sido aprobado por el Ministerio de Hacienda.",
-                from_email="facturacion@tusistema.com",
-                recipient_list=[dte.cliente.correo],
-                fail_silently=True,
+            from django.core.mail import EmailMessage
+
+            email = EmailMessage(
+                subject="📄 Comprobante Electrónico Aprobado - OMNIGEST",
+                body=(
+                    f"Estimado {dte.cliente.nombre},\n\n"
+                    f"Su documento electrónico tipo {dte.get_tipo_dte_display()} "
+                    f"ha sido aprobado por el Ministerio de Hacienda.\n\n"
+                    "Adjunto encontrará su comprobante en formato PDF y JSON.\n\n"
+                    "Saludos cordiales,\nEquipo OMNIGEST"
+                ),
+                from_email="facturacion@omnigest.com",
+                to=[dte.cliente.correo],
             )
 
-        return JsonResponse({'success': True})
+            # Adjuntar PDF
+            email.attach(f"DTE_{dte.numero_control}.pdf", pdf_buffer.read(), "application/pdf")
+
+            # Adjuntar JSON
+            with open(json_path, "r", encoding="utf-8") as f:
+                email.attach(f"DTE_{dte.numero_control}.json", f.read(), "application/json")
+
+            email.send(fail_silently=False)
+
+        return JsonResponse({'success': True, 'msg': 'DTE enviado con comprobantes adjuntos.'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+
+# ======================================================
+# ✏️ EDITAR CAMPOS DEL CLIENTE EN UN DTE
+# ======================================================
+@rol_requerido(['Administrador', 'Gerente'])
+@csrf_exempt
+def editar_datos_dte(request, id):
+    """
+    Permite modificar datos del cliente (nombre, correo, NIT, dirección)
+    y reenviar el comprobante actualizado (PDF + JSON) al cliente.
+    """
+    dte = get_object_or_404(DTE, id=id)
+
+    if request.method == "POST":
+        try:
+            import json, tempfile
+            data = json.loads(request.body.decode('utf-8'))
+
+            # 🔹 Actualizar datos del cliente
+            cliente = dte.cliente
+            cliente.nombre = data.get('nombre', cliente.nombre)
+            cliente.correo = data.get('correo', cliente.correo)
+            cliente.nit = data.get('nit', cliente.nit)
+            cliente.direccion = data.get('direccion', cliente.direccion)
+            cliente.save()
+
+            # 🔹 Simular nuevo código MH
+            time.sleep(2)
+            dte.codigo_generacion = "MH-" + str(int(time.time()))
+            dte.sello_recepcion = "SELLO-" + str(int(time.time()))
+            dte.save()
+
+            # 🔹 Crear JSON actualizado
+            json_path = tempfile.gettempdir() + f"\\DTE_{dte.numero_control}.json"
+
+            dte_json = {
+                "tipo_dte": dte.tipo_dte,
+                "numero_control": dte.numero_control,
+                "cliente": cliente.nombre,
+                "correo": cliente.correo,
+                "fecha_emision": dte.fecha_emision.strftime("%Y-%m-%d"),
+                "total": float(dte.total),
+                "codigo_generacion": dte.codigo_generacion,
+                "sello_recepcion": dte.sello_recepcion,
+            }
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(dte_json, f, ensure_ascii=False, indent=4)
+
+            # 🔹 Crear PDF actualizado con factura01.html
+            from io import BytesIO
+            from django.template.loader import render_to_string
+            from xhtml2pdf import pisa
+
+            pdf_buffer = BytesIO()
+            # 📄 Renderizar la factura con tu plantilla HTML original
+            html_content = render_to_string("Facturacion/factura01.html", {
+                 "dte": dte,
+                "empresa": dte.empresa,
+                "cliente": dte.cliente,
+                "editable": False,
+                "qr_data": None,
+            })
+
+            # 🎨 Agregar tus estilos CSS reales
+            css_path = os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css')
+            pdf_buffer = BytesIO()
+
+            # 🖨️ Generar PDF con WeasyPrint (idéntico a lo que ves en el navegador)
+            HTML(string=html_content, base_url=request.build_absolute_uri("/")).write_pdf(
+            pdf_buffer, stylesheets=[CSS(filename=css_path)]
+            )
+
+            pdf_buffer.seek(0)
+
+            # 🔹 Enviar correo al cliente con los adjuntos
+            if cliente.correo:
+                from django.core.mail import EmailMessage
+
+                email = EmailMessage(
+                    subject="📄 DTE Actualizado y Aprobado - OMNIGEST",
+                    body=(
+                        f"Estimado {cliente.nombre},\n\n"
+                        "Su documento electrónico ha sido actualizado y aprobado "
+                        "por el Ministerio de Hacienda.\n\n"
+                        "Adjunto encontrará su comprobante actualizado en PDF y JSON.\n\n"
+                        "Saludos,\nEquipo OMNIGEST"
+                    ),
+                    from_email="facturacion@omnigest.com",
+                    to=[cliente.correo],
+                )
+
+                # Adjuntar PDF actualizado
+                email.attach(f"DTE_{dte.numero_control}.pdf", pdf_buffer.read(), "application/pdf")
+
+                # Adjuntar JSON actualizado
+                with open(json_path, "r", encoding="utf-8") as f:
+                    email.attach(f"DTE_{dte.numero_control}.json", f.read(), "application/json")
+
+                email.send(fail_silently=False)
+
+            return JsonResponse({
+                "status": "ok",
+                "msg": "Documento actualizado y reenviado al cliente con comprobantes adjuntos."
+            })
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "msg": str(e)})
+
+    return JsonResponse({"status": "error", "msg": "Método no permitido."})
+
+
+@login_required
+def ver_dte_json(request, id):
+    """Devuelve los datos del DTE en formato JSON para edición rápida"""
+    dte = get_object_or_404(DTE, id=id)
+    return JsonResponse({
+        "id": dte.id,
+        "tipo_dte": dte.tipo_dte,
+        "numero_control": dte.numero_control,
+        "fecha": dte.fecha_emision.strftime("%Y-%m-%d %H:%M"),
+        "estado": dte.estado,
+        "total": float(dte.total),
+        "cliente_nombre": dte.cliente.nombre if dte.cliente else "",
+        "cliente_correo": dte.cliente.correo if dte.cliente else "",
+        "cliente_nit": dte.cliente.nit if dte.cliente else "",
+        "cliente_direccion": dte.cliente.direccion if dte.cliente else ""
+    })
 
 # ======================================================
 # 📚 CATÁLOGOS
