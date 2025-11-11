@@ -261,13 +261,16 @@ def generar_dte(request, tipo):
         time.sleep(2)
 
         # 🔹 Generar códigos simulados
-        dte.codigo_generacion = "MH-" + str(int(time.time()))
-        dte.sello_recepcion = "SELLO-" + str(int(time.time()))
+        dte.codigo_generacion = f"MH-{int(time.time())}"
+        dte.sello_recepcion = f"SELLO-{int(time.time())}"
         dte.save()
 
+        # =====================================================
         # 🔹 Crear JSON con los datos del DTE
-        import tempfile, json
-        json_path = tempfile.gettempdir() + f"\\DTE_{dte.numero_control}.json"
+        # =====================================================
+        temp_dir = tempfile.gettempdir()  # ✅ obtiene el directorio temporal compatible
+        json_filename = f"DTE_{dte.numero_control}.json"
+        json_path = os.path.join(temp_dir, json_filename)
 
         dte_json = {
             "tipo_dte": dte.tipo_dte,
@@ -280,16 +283,13 @@ def generar_dte(request, tipo):
             "sello_recepcion": dte.sello_recepcion,
         }
 
+        # ✅ Escribir el archivo JSON
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(dte_json, f, ensure_ascii=False, indent=4)
 
-        # 🔹 Generar PDF con la plantilla oficial (factura01.html)
-        from io import BytesIO
-        from django.template.loader import render_to_string
-        from xhtml2pdf import pisa
-
-        pdf_buffer = BytesIO()
-        # 📄 Renderizar la factura con tu plantilla HTML original
+        # =====================================================
+        # 🔹 Generar PDF (usando WeasyPrint)
+        # =====================================================
         html_content = render_to_string("Facturacion/factura01.html", {
             "dte": dte,
             "empresa": dte.empresa,
@@ -298,21 +298,19 @@ def generar_dte(request, tipo):
             "qr_data": None,
         })
 
-        # 🎨 Agregar tus estilos CSS reales
         css_path = os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css')
         pdf_buffer = BytesIO()
 
-        # 🖨️ Generar PDF con WeasyPrint (idéntico a lo que ves en el navegador)
         HTML(string=html_content, base_url=request.build_absolute_uri("/")).write_pdf(
-        pdf_buffer, stylesheets=[CSS(filename=css_path)]
-    )
-
+            pdf_buffer,
+            stylesheets=[CSS(filename=css_path)]
+        )
         pdf_buffer.seek(0)
 
+        # =====================================================
         # 🔹 Envío de correo al cliente
+        # =====================================================
         if dte.cliente and dte.cliente.correo:
-            from django.core.mail import EmailMessage
-
             email = EmailMessage(
                 subject="📄 Comprobante Electrónico Aprobado - OMNIGEST",
                 body=(
@@ -322,24 +320,24 @@ def generar_dte(request, tipo):
                     "Adjunto encontrará su comprobante en formato PDF y JSON.\n\n"
                     "Saludos cordiales,\nEquipo OMNIGEST"
                 ),
-                from_email="facturacion@omnigest.com",
+                from_email="manuelito2327@gmail.com",  # ✅ correo verificado en Brevo
                 to=[dte.cliente.correo],
             )
 
-            # Adjuntar PDF
+            # 📎 Adjuntar PDF
             email.attach(f"DTE_{dte.numero_control}.pdf", pdf_buffer.read(), "application/pdf")
 
-            # Adjuntar JSON
+            # 📎 Adjuntar JSON
             with open(json_path, "r", encoding="utf-8") as f:
-                email.attach(f"DTE_{dte.numero_control}.json", f.read(), "application/json")
+                email.attach(json_filename, f.read(), "application/json")
 
+            # ✅ Enviar correo
             email.send(fail_silently=False)
 
         return JsonResponse({'success': True, 'msg': 'DTE enviado con comprobantes adjuntos.'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
-
 
 # ======================================================
 # ✏️ EDITAR CAMPOS DEL CLIENTE EN UN DTE

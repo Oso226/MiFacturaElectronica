@@ -118,17 +118,26 @@ LOGIN_REDIRECT_URL = 'menu_principal'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
+import os
+
 # =====================================================
-# CORREO ELECTRÓNICO
+# CONFIGURACIÓN DE CORREO - BREVO SMTP
 # =====================================================
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST = "smtp-relay.brevo.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "manuelito2327@gmail.com"
-EMAIL_HOST_PASSWORD = "kzygnyzhqweihsxh"  # Contraseña de aplicación
+
+# 🔹 Estos dos datos vienen de tu panel de Brevo
+EMAIL_HOST_USER = "9b0157001@smtp-brevo.com"   # Tu usuario SMTP (ver en Brevo)
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+# 🔹 Este será el correo que aparecerá como remitente
+DEFAULT_FROM_EMAIL = "manuelito2327@gmail.com"
+
 EMAIL_TIMEOUT = 30
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
 
 # =====================================================
 # SEGURIDAD PARA RENDER
