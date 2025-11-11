@@ -1,54 +1,45 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.models import User
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
-from django.utils.timezone import now
-from decimal import Decimal
-from openpyxl.styles import Alignment, Font, Border, Side
-import openpyxl
-from django.db import IntegrityError
-
-# Modelos y formularios
-from .models import DTE, Perfil, Cliente, Proveedor, Producto, Inventario, Compra
-from .forms import ClienteForm, ProveedorForm, ProductoForm
-from .permisos import rol_requerido
-import uuid
+# ======================================================
+# 📦 IMPORTACIONES GLOBALES
+# ======================================================
+import os
 import io
-import base64
 import qrcode
-from django.utils import timezone
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-
-# 🔧 NUEVO - librerías para QR, UUID, base64 y utilidades
-import uuid
-import io
-import base64
-import qrcode
+import json
 import time
+import base64
+import uuid
+import tempfile
+import threading
+from io import BytesIO  # ✅ agregado correctamente
+
+from decimal import Decimal
+from datetime import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.db.models import Q
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
+from django.utils.timezone import now, localtime
 from django.views.decorators.csrf import csrf_exempt
-from django.core.mail import send_mail
-from .models import Producto
-from django.core.mail import send_mail, EmailMessage
+from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 from django.conf import settings
-import json
-from .models import DTE
-from .models import DTE, DetalleDTE
-from django.utils.timezone import localtime
-import tempfile
-from weasyprint import HTML
-import os
-from datetime import datetime
-from .models import Cliente, DTE, DetalleDTE, Empresa
-import threading
+from django.core.mail import EmailMessage, send_mail
+from openpyxl.styles import Alignment, Font, Border, Side
 from weasyprint import HTML, CSS
-import tempfile
-from io import BytesIO
+
+# Modelos y formularios
+from .models import (
+    DTE, Perfil, Cliente, Proveedor, Producto,
+    Inventario, Compra, DetalleDTE, Empresa
+)
+from .forms import ClienteForm, ProveedorForm, ProductoForm
+from .permisos import rol_requerido
+
 
 
 # ======================================================
@@ -255,27 +246,23 @@ def generar_dte(request, tipo):
     - Adjuntos: comprobante en PDF y JSON.
     """
     try:
-        # 🔍 Obtener el último DTE del tipo solicitado
         dte = DTE.objects.filter(tipo_dte=tipo).last()
         if not dte:
             return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
 
-        # ⏳ Simulación de tiempo de procesamiento
+        # Simular proceso de generación
         time.sleep(2)
-
-        # 🔹 Generar códigos simulados
         dte.codigo_generacion = f"MH-{int(time.time())}"
         dte.sello_recepcion = f"SELLO-{int(time.time())}"
         dte.save()
 
         # =====================================================
-        # 🔹 Crear JSON con los datos del DTE (rutas seguras)
+        # 🔹 Crear JSON temporal (compatible con Render y Windows)
         # =====================================================
-        temp_dir = tempfile.gettempdir()  # Directorio temporal compatible con Windows/Linux
+        temp_dir = tempfile.gettempdir()
         json_filename = f"DTE_{dte.numero_control}.json"
         json_path = os.path.join(temp_dir, json_filename)
 
-        # Datos que irán en el JSON
         dte_json = {
             "tipo_dte": dte.tipo_dte,
             "numero_control": dte.numero_control,
@@ -287,12 +274,11 @@ def generar_dte(request, tipo):
             "sello_recepcion": dte.sello_recepcion,
         }
 
-        # ✅ Escribir el archivo JSON directamente en /tmp
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(dte_json, f, ensure_ascii=False, indent=4)
 
         # =====================================================
-        # 🔹 Generar PDF (WeasyPrint)
+        # 🔹 Generar PDF con WeasyPrint
         # =====================================================
         html_content = render_to_string("Facturacion/factura01.html", {
             "dte": dte,
@@ -302,18 +288,19 @@ def generar_dte(request, tipo):
             "qr_data": None,
         })
 
-        css_path = os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css')
+        css_path = os.path.join(
+            settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css'
+        )
         pdf_buffer = BytesIO()
 
         HTML(string=html_content, base_url=request.build_absolute_uri("/")).write_pdf(
-            pdf_buffer,
-            stylesheets=[CSS(filename=css_path)]
+            pdf_buffer, stylesheets=[CSS(filename=css_path)]
         )
 
         pdf_buffer.seek(0)
 
         # =====================================================
-        # 🔹 Envío de correo al cliente (Brevo SMTP)
+        # 🔹 Envío de correo al cliente
         # =====================================================
         if dte.cliente and dte.cliente.correo:
             email = EmailMessage(
@@ -325,26 +312,22 @@ def generar_dte(request, tipo):
                     "Adjunto encontrará su comprobante en formato PDF y JSON.\n\n"
                     "Saludos cordiales,\nEquipo OMNIGEST"
                 ),
-                from_email="manuelito2327@gmail.com",  # ✅ tu correo verificado en Brevo
+                from_email="manuelito2327@gmail.com",  # tu correo Brevo verificado
                 to=[dte.cliente.correo],
             )
 
-            # 📎 Adjuntar PDF
+            # Adjuntar PDF y JSON
             email.attach(f"DTE_{dte.numero_control}.pdf", pdf_buffer.read(), "application/pdf")
-
-            # 📎 Adjuntar JSON
             with open(json_path, "r", encoding="utf-8") as f:
                 email.attach(json_filename, f.read(), "application/json")
 
-            # ✅ Enviar correo (usando configuración SMTP de settings.py)
             email.send(fail_silently=False)
 
-        return JsonResponse({'success': True, 'msg': 'DTE enviado con comprobantes adjuntos.'})
+        return JsonResponse({'success': True, 'msg': '✅ DTE enviado con comprobantes adjuntos.'})
 
     except Exception as e:
-        # 📋 Devuelve el error para depuración
         return JsonResponse({'success': False, 'error': str(e)})
-
+    
 # ======================================================
 # ✏️ EDITAR CAMPOS DEL CLIENTE EN UN DTE
 # ======================================================
