@@ -48,6 +48,7 @@ from .models import Cliente, DTE, DetalleDTE, Empresa
 import threading
 from weasyprint import HTML, CSS
 import tempfile
+from io import BytesIO
 
 
 # ======================================================
