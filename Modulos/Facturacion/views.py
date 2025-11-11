@@ -288,14 +288,14 @@ def generar_dte(request, tipo):
             "qr_data": None,
         })
 
-        css_path = os.path.join(
-            settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css'
-        )
+        css_path = os.path.join(settings.STATIC_ROOT or os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static'), 'css', 'factura01.css')
         pdf_buffer = BytesIO()
 
-        HTML(string=html_content, base_url=request.build_absolute_uri("/")).write_pdf(
-            pdf_buffer, stylesheets=[CSS(filename=css_path)]
+        HTML(string=html_content).write_pdf(
+        pdf_buffer,
+        stylesheets=[CSS(filename=css_path)],
         )
+
 
         pdf_buffer.seek(0)
 
