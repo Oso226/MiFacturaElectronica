@@ -128,7 +128,7 @@ SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 SENDGRID_ECHO_TO_STDOUT = True
 
 # Dirección del remitente que verán tus clientes
-DEFAULT_FROM_EMAIL = "mifacturaelectronica@onrender.com"
+DEFAULT_FROM_EMAIL = "manuelito2327@gmail.com"
 
 # =====================================================
 # SEGURIDAD PARA RENDER
