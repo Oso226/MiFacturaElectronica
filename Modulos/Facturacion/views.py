@@ -47,6 +47,7 @@ from datetime import datetime
 from .models import Cliente, DTE, DetalleDTE, Empresa
 import threading
 from weasyprint import HTML, CSS
+import tempfile
 
 
 # ======================================================
@@ -253,6 +254,7 @@ def generar_dte(request, tipo):
     - Adjuntos: comprobante en PDF y JSON.
     """
     try:
+        # 🔍 Obtener el último DTE del tipo solicitado
         dte = DTE.objects.filter(tipo_dte=tipo).last()
         if not dte:
             return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
@@ -266,12 +268,13 @@ def generar_dte(request, tipo):
         dte.save()
 
         # =====================================================
-        # 🔹 Crear JSON con los datos del DTE
+        # 🔹 Crear JSON con los datos del DTE (rutas seguras)
         # =====================================================
-        temp_dir = tempfile.gettempdir()  # ✅ obtiene el directorio temporal compatible
+        temp_dir = tempfile.gettempdir()  # Directorio temporal compatible con Windows/Linux
         json_filename = f"DTE_{dte.numero_control}.json"
         json_path = os.path.join(temp_dir, json_filename)
 
+        # Datos que irán en el JSON
         dte_json = {
             "tipo_dte": dte.tipo_dte,
             "numero_control": dte.numero_control,
@@ -283,12 +286,12 @@ def generar_dte(request, tipo):
             "sello_recepcion": dte.sello_recepcion,
         }
 
-        # ✅ Escribir el archivo JSON
+        # ✅ Escribir el archivo JSON directamente en /tmp
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(dte_json, f, ensure_ascii=False, indent=4)
 
         # =====================================================
-        # 🔹 Generar PDF (usando WeasyPrint)
+        # 🔹 Generar PDF (WeasyPrint)
         # =====================================================
         html_content = render_to_string("Facturacion/factura01.html", {
             "dte": dte,
@@ -305,10 +308,11 @@ def generar_dte(request, tipo):
             pdf_buffer,
             stylesheets=[CSS(filename=css_path)]
         )
+
         pdf_buffer.seek(0)
 
         # =====================================================
-        # 🔹 Envío de correo al cliente
+        # 🔹 Envío de correo al cliente (Brevo SMTP)
         # =====================================================
         if dte.cliente and dte.cliente.correo:
             email = EmailMessage(
@@ -320,7 +324,7 @@ def generar_dte(request, tipo):
                     "Adjunto encontrará su comprobante en formato PDF y JSON.\n\n"
                     "Saludos cordiales,\nEquipo OMNIGEST"
                 ),
-                from_email="manuelito2327@gmail.com",  # ✅ correo verificado en Brevo
+                from_email="manuelito2327@gmail.com",  # ✅ tu correo verificado en Brevo
                 to=[dte.cliente.correo],
             )
 
@@ -331,12 +335,13 @@ def generar_dte(request, tipo):
             with open(json_path, "r", encoding="utf-8") as f:
                 email.attach(json_filename, f.read(), "application/json")
 
-            # ✅ Enviar correo
+            # ✅ Enviar correo (usando configuración SMTP de settings.py)
             email.send(fail_silently=False)
 
         return JsonResponse({'success': True, 'msg': 'DTE enviado con comprobantes adjuntos.'})
 
     except Exception as e:
+        # 📋 Devuelve el error para depuración
         return JsonResponse({'success': False, 'error': str(e)})
 
 # ======================================================
