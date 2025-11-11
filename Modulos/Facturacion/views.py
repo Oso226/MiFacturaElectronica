@@ -321,8 +321,16 @@ def generar_dte(request, tipo):
             with open(json_path, "r", encoding="utf-8") as f:
                 email.attach(json_filename, f.read(), "application/json")
 
-            email.send(fail_silently=False)
+            def enviar_correo_async(email):
+                try:
+                    print("🚀 Enviando correo a:", email.to)
+                    email.send(fail_silently=False)
+                    print("✅ Correo enviado correctamente (modo async).")
+                except Exception as e:
+                    print(f"❌ Error al enviar correo async: {e}")
 
+            # Enviar el correo en segundo plano
+        threading.Thread(target=enviar_correo_async, args=(email,)).start()
         return JsonResponse({'success': True, 'msg': '✅ DTE enviado con comprobantes adjuntos.'})
 
     except Exception as e:
