@@ -235,7 +235,7 @@ def nueva_factura(request, tipo):
 
 
 # ======================================================
-# ⚙️ GENERAR DTE (Simulación de envío con PDF y JSON)
+# ⚙️ GENERAR DTE (Simulación de envío con PDF y JSON usando SendGrid API)
 # ======================================================
 @csrf_exempt
 @login_required
@@ -245,19 +245,23 @@ def generar_dte(request, tipo):
     - El aviso de aprobación.
     - Adjuntos: comprobante en PDF y JSON.
     """
+    import sendgrid
+    from sendgrid.helpers.mail import Mail, Email, To, Content, Attachment, FileContent, FileName, FileType, Disposition
+    import base64
+
     try:
         dte = DTE.objects.filter(tipo_dte=tipo).last()
         if not dte:
             return JsonResponse({'success': False, 'error': 'No se encontró el documento.'})
 
-        # Simular proceso de generación
+        # ⏳ Simulación del proceso de generación
         time.sleep(2)
         dte.codigo_generacion = f"MH-{int(time.time())}"
         dte.sello_recepcion = f"SELLO-{int(time.time())}"
         dte.save()
 
         # =====================================================
-        # 🔹 Crear JSON temporal (compatible con Render y Windows)
+        # 🔹 Crear JSON temporal (compatible con Render)
         # =====================================================
         temp_dir = tempfile.gettempdir()
         json_filename = f"DTE_{dte.numero_control}.json"
@@ -288,54 +292,78 @@ def generar_dte(request, tipo):
             "qr_data": None,
         })
 
-        css_path = os.path.join(settings.STATIC_ROOT or os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static'), 'css', 'factura01.css')
-        pdf_buffer = BytesIO()
-
-        HTML(string=html_content).write_pdf(
-        pdf_buffer,
-        stylesheets=[CSS(filename=css_path)],
+        css_path = os.path.join(
+            settings.STATIC_ROOT or os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static'),
+            'css', 'factura01.css'
         )
 
-
+        pdf_buffer = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[CSS(filename=css_path)])
         pdf_buffer.seek(0)
 
         # =====================================================
-        # 🔹 Envío de correo al cliente
+        # 🔹 Envío de correo con SendGrid API
         # =====================================================
         if dte.cliente and dte.cliente.correo:
-            email = EmailMessage(
-                subject="📄 Comprobante Electrónico Aprobado - OMNIGEST",
-                body=(
-                    f"Estimado {dte.cliente.nombre},\n\n"
-                    f"Su documento electrónico tipo {dte.get_tipo_dte_display()} "
-                    f"ha sido aprobado por el Ministerio de Hacienda.\n\n"
-                    "Adjunto encontrará su comprobante en formato PDF y JSON.\n\n"
-                    "Saludos cordiales,\nEquipo OMNIGEST"
-                ),
-                from_email="manuelito2327@gmail.com",  # tu correo Brevo verificado
-                to=[dte.cliente.correo],
+            print(f"🚀 Enviando correo a: {dte.cliente.correo}")
+
+            sg = sendgrid.SendGridAPIClient(api_key=os.environ.get("SENDGRID_API_KEY"))
+
+            # Configuración básica del correo
+            from_email = Email("manuelito2327@gmail.com", "OMNIGEST Facturación Electrónica")
+            to_email = To(dte.cliente.correo)
+            subject = "📄 Comprobante Electrónico Aprobado - OMNIGEST"
+            content = Content(
+                "text/plain",
+                f"""Estimado {dte.cliente.nombre},
+
+Su documento electrónico tipo {dte.get_tipo_dte_display()} ha sido aprobado por el Ministerio de Hacienda.
+
+Adjunto encontrará su comprobante en formato PDF y JSON.
+
+Saludos cordiales,
+Equipo OMNIGEST"""
             )
 
-            # Adjuntar PDF y JSON
-            email.attach(f"DTE_{dte.numero_control}.pdf", pdf_buffer.read(), "application/pdf")
-            with open(json_path, "r", encoding="utf-8") as f:
-                email.attach(json_filename, f.read(), "application/json")
+            mail = Mail(from_email, to_email, subject, content)
 
-            def enviar_correo_async(email):
-                try:
-                    print("🚀 Enviando correo a:", email.to)
-                    email.send(fail_silently=False)
-                    print("✅ Correo enviado correctamente (modo async).")
-                except Exception as e:
-                    print(f"❌ Error al enviar correo async: {e}")
+            # 📎 Adjuntar PDF
+            pdf_data = base64.b64encode(pdf_buffer.read()).decode()
+            mail.add_attachment(
+                Attachment(
+                    FileContent(pdf_data),
+                    FileName(f"DTE_{dte.numero_control}.pdf"),
+                    FileType("application/pdf"),
+                    Disposition("attachment")
+                )
+            )
 
-            # Enviar el correo en segundo plano
-        threading.Thread(target=enviar_correo_async, args=(email,)).start()
-        return JsonResponse({'success': True, 'msg': '✅ DTE enviado con comprobantes adjuntos.'})
+            # 📎 Adjuntar JSON
+            with open(json_path, "rb") as jf:
+                json_data = base64.b64encode(jf.read()).decode()
+                mail.add_attachment(
+                    Attachment(
+                        FileContent(json_data),
+                        FileName(json_filename),
+                        FileType("application/json"),
+                        Disposition("attachment")
+                    )
+                )
+
+            # 📤 Enviar correo con SendGrid
+            response = sg.client.mail.send.post(request_body=mail.get())
+
+            if response.status_code in [200, 202]:
+                print("✅ Correo enviado correctamente con SendGrid API.")
+            else:
+                print(f"❌ Error SendGrid: {response.status_code} -> {response.body}")
+
+        return JsonResponse({'success': True, 'msg': '✅ DTE enviado exitosamente con adjuntos.'})
 
     except Exception as e:
+        print(f"❌ Error general en generar_dte: {e}")
         return JsonResponse({'success': False, 'error': str(e)})
-    
+
 # ======================================================
 # ✏️ EDITAR CAMPOS DEL CLIENTE EN UN DTE
 # ======================================================
