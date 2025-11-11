@@ -1,6 +1,6 @@
 """
 Django settings for MiFacturaElectronica project.
-Optimizado para Render, multiempresa y seguridad.
+Optimizado para Render, multiempresa y envío de correos con SendGrid.
 """
 
 from pathlib import Path
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
 # =====================================================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', 
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -107,7 +107,6 @@ else:
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# 📦 Archivos de usuario (PDF, imágenes, etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -118,26 +117,18 @@ LOGIN_REDIRECT_URL = 'menu_principal'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
-import os
-
 # =====================================================
-# CONFIGURACIÓN DE CORREO - BREVO SMTP
+# 📧 CONFIGURACIÓN DE CORREO - SENDGRID API
 # =====================================================
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp-relay.brevo.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 
-# 🔹 Estos dos datos vienen de tu panel de Brevo
-EMAIL_HOST_USER = "9b0157001@smtp-brevo.com"   # Tu usuario SMTP (ver en Brevo)
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+# Opcional (útil para depurar en local)
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+SENDGRID_ECHO_TO_STDOUT = True
 
-# 🔹 Este será el correo que aparecerá como remitente
-DEFAULT_FROM_EMAIL = "manuelito2327@gmail.com"
-
-EMAIL_TIMEOUT = 30
-
-
+# Dirección del remitente que verán tus clientes
+DEFAULT_FROM_EMAIL = "mifacturaelectronica@onrender.com"
 
 # =====================================================
 # SEGURIDAD PARA RENDER
@@ -154,10 +145,7 @@ if DEBUG:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+# Ruta del CSS de factura (para PDF)
 PISA_DEFAULT_CSS = os.path.join(BASE_DIR, 'static/css/factura01.css')
-
 
 
