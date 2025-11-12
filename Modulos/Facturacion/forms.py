@@ -7,28 +7,21 @@ from .models import Cliente, Proveedor, Producto
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = '__all__'
+        fields = ['nombre', 'dui', 'nit', 'nrc', 'direccion', 'correo', 'telefono']  # ✅ incluye DUI
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre completo'}),
+            'dui': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '00000000-0'}), 
             'nit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 0614-123456-001-0'}),
             'nrc': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de registro'}),
-            'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'direccion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 1,  # ✅ tamaño inicial pequeño
+                'style': 'overflow:hidden;resize:none;height:auto;min-height:38px;',  # ✅ autoajuste dinámico
+                'placeholder': 'Dirección'
+            }),
             'correo': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ejemplo@correo.com'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '7777-7777'}),
         }
-class ClienteForm(forms.ModelForm):
-    class Meta:
-        model = Cliente
-        fields = ['nombre', 'nit', 'nrc', 'direccion', 'correo', 'telefono']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Aplica clases Bootstrap a todos los campos
-        for field in self.fields.values():
-            field.widget.attrs.update({
-                'class': 'form-control',
-                'placeholder': field.label
-            })
 
 # ======================================================
 # FORMULARIO PROVEEDOR

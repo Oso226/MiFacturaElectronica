@@ -1,0 +1,23 @@
+<form method="post" action="{% url 'editar_producto' producto.id %}">
+  {% csrf_token %}
+  
+  <div class="mb-3">
+    <label for="codigo" class="form-label">Código:</label>
+    <input type="text" name="codigo" id="codigo" class="form-control"
+           value="{{ producto.codigo }}" readonly>
+  </div>
+
+  {{ form.descripcion.label_tag }}
+  {{ form.descripcion }}
+  
+  {{ form.unidad_medida.label_tag }}
+  {{ form.unidad_medida }}
+
+  {{ form.precio_unitario.label_tag }}
+  {{ form.precio_unitario }}
+
+  <div class="text-center mt-4">
+    <button type="submit" class="btn btn-warning w-100">Actualizar</button>
+  </div>
+</form>
+

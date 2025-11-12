@@ -1,0 +1,43 @@
+<form method="POST" action="{% url 'editar_cliente' cliente.id %}" class="card p-3 border-0">
+  {% csrf_token %}
+  <h4 class="text-center fw-bold mb-3 text-dark">✏️ Editar Cliente</h4>
+
+  <div class="mb-3 text-start">
+      <label for="id_nombre" class="form-label">Nombre:</label>
+      {{ form.nombre }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_dui" class="form-label">DUI:</label>
+      {{ form.dui }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_nit" class="form-label">NIT:</label>
+      {{ form.nit }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_nrc" class="form-label">NRC:</label>
+      {{ form.nrc }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_direccion" class="form-label">Dirección:</label>
+      {{ form.direccion }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_correo" class="form-label">Correo:</label>
+      {{ form.correo }}
+  </div>
+
+  <div class="mb-3 text-start">
+      <label for="id_telefono" class="form-label">Teléfono:</label>
+      {{ form.telefono }}
+  </div>
+
+  <div class="text-center mt-3">
+      <button type="submit" class="btn btn-warning px-4 fw-bold">Actualizar</button>
+  </div>
+</form>

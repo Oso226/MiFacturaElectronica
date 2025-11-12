@@ -1,10 +1,15 @@
-<form method="POST" action="{% url 'crear_cliente' %}" class="card p-4 shadow-sm border-0">
+<form method="POST" action="{% url 'crear_cliente' %}" class="card p-4 shadow-sm border-0" id="formCliente">
     {% csrf_token %}
     <h4 class="text-center fw-bold mb-4 text-dark">🧍 Registrar Nuevo Cliente</h4>
 
     <div class="mb-3 text-start">
         <label for="id_nombre" class="form-label">Nombre:</label>
         {{ form.nombre }}
+    </div>
+
+    <div class="mb-3 text-start">
+        <label for="id_dui" class="form-label">DUI:</label>
+        {{ form.dui }}
     </div>
 
     <div class="mb-3 text-start">
@@ -36,5 +41,20 @@
         <button type="submit" class="btn btn-success px-4">Guardar</button>
     </div>
 </form>
+
+<script>
+/* 🔹 Script para autoajustar el campo dirección dinámicamente */
+document.addEventListener("DOMContentLoaded", function() {
+    const direccionField = document.getElementById("id_direccion");
+    if (direccionField) {
+        direccionField.style.overflow = "hidden";
+        direccionField.style.resize = "none"; // evita estirarlo manualmente
+        direccionField.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = (this.scrollHeight) + "px";
+        });
+    }
+});
+</script>
 
 

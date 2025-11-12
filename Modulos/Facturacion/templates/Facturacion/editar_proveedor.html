@@ -1,0 +1,45 @@
+<form method="POST" action="{% url 'editar_proveedor' proveedor.id %}" class="card p-3 shadow-sm border-0">
+  {% csrf_token %}
+  <h5 class="text-center fw-bold text-dark mb-3">✏️ Editar Proveedor</h5>
+
+  <div class="mb-3 text-start">
+    <label class="form-label fw-semibold">Nombre del proveedor</label>
+    {{ form.nombre }}
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3 text-start">
+      <label class="form-label fw-semibold">NIT</label>
+      {{ form.nit }}
+    </div>
+    <div class="col-md-6 mb-3 text-start">
+      <label class="form-label fw-semibold">NRC</label>
+      {{ form.nrc }}
+    </div>
+  </div>
+
+  <div class="mb-3 text-start">
+    <label class="form-label fw-semibold">Dirección</label>
+    {{ form.direccion }}
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3 text-start">
+      <label class="form-label fw-semibold">Teléfono</label>
+      {{ form.telefono }}
+    </div>
+    <div class="col-md-6 mb-3 text-start">
+      <label class="form-label fw-semibold">Correo electrónico</label>
+      {{ form.correo }}
+    </div>
+  </div>
+
+  <div class="mb-3 text-start">
+    <label class="form-label fw-semibold">Representante</label>
+    {{ form.representante }}
+  </div>
+
+  <div class="text-center mt-3">
+    <button type="submit" class="btn btn-warning fw-semibold px-4">💾 Actualizar</button>
+  </div>
+</form>

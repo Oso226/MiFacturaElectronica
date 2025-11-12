@@ -516,8 +516,26 @@ def menu_catalogos(request):
 
 @rol_requerido(['Administrador', 'Empleado'])
 def lista_clientes(request):
-    clientes = Cliente.objects.all().order_by('-id')[:20]
-    return render(request, 'Facturacion/clientes.html', {'clientes': clientes})
+    """
+    Lista los clientes con opción de filtrar por nombre o DUI.
+    Si no hay búsqueda, muestra los últimos 20 registros.
+    """
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        # 🔹 Filtra por nombre o DUI
+        clientes = Cliente.objects.filter(
+            Q(nombre__icontains=query) | Q(dui__icontains=query)
+        ).order_by('-id')
+    else:
+        # 🔹 Si no hay búsqueda, muestra los últimos 20
+        clientes = Cliente.objects.all().order_by('-id')[:20]
+
+    context = {
+        'clientes': clientes,
+        'query': query,  # Mantiene el texto del buscador
+    }
+    return render(request, 'Facturacion/clientes.html', context)
 
 
 @rol_requerido(['Administrador', 'Empleado'])
@@ -536,15 +554,18 @@ def crear_cliente(request):
 @rol_requerido(['Administrador', 'Contador'])
 def editar_cliente(request, id):
     cliente = get_object_or_404(Cliente, id=id)
+
     if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
+        form = ClienteForm(request.POST, instance=cliente)  # ✅ Ojo aquí, instance=cliente
         if form.is_valid():
             form.save()
-            messages.success(request, "Cliente actualizado correctamente.")
-            return redirect('lista_clientes')
-    else:
-        form = ClienteForm(instance=cliente)
-    return render(request, 'Facturacion/form_cliente.html', {'form': form})
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': form.errors.as_json()})
+
+    # Si es GET, muestra el formulario dentro del modal
+    form = ClienteForm(instance=cliente)
+    return render(request, 'Facturacion/editar_cliente.html', {'form': form, 'cliente': cliente})
 
 
 @rol_requerido(['Administrador'])
@@ -561,8 +582,23 @@ def eliminar_cliente(request, id):
 
 @login_required
 def lista_proveedores(request):
-    proveedores = Proveedor.objects.all()
-    return render(request, 'Facturacion/proveedores.html', {'proveedores': proveedores})
+    """
+    Lista los proveedores con opción de filtrar por nombre o NIT.
+    Si no hay búsqueda, muestra los últimos 20 registros.
+    """
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        proveedores = Proveedor.objects.filter(
+            Q(nombre__icontains=query) | Q(nit__icontains=query)
+        ).order_by('-id')
+    else:
+        proveedores = Proveedor.objects.all().order_by('-id')[:20]
+
+    return render(request, 'Facturacion/proveedores.html', {
+        'proveedores': proveedores,
+        'query': query,
+    })
 
 
 @login_required
@@ -571,26 +607,27 @@ def crear_proveedor(request):
         form = ProveedorForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Proveedor agregado correctamente.")
-            return redirect('lista_proveedores')
+            return JsonResponse({'success': True})
+        return JsonResponse({'error': 'Formulario inválido'}, status=400)
     else:
         form = ProveedorForm()
-    return render(request, 'Facturacion/form_proveedor.html', {'form': form})
+        return render(request, 'Facturacion/form_proveedor.html', {'form': form})
 
 
 @login_required
 def editar_proveedor(request, id):
     proveedor = get_object_or_404(Proveedor, id=id)
+
     if request.method == 'POST':
         form = ProveedorForm(request.POST, instance=proveedor)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Proveedor '{proveedor.nombre}' actualizado correctamente.")
-            return redirect('lista_proveedores')
-    else:
-        form = ProveedorForm(instance=proveedor)
-    return render(request, 'Facturacion/form_proveedor.html', {'form': form})
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': form.errors.as_json()})
 
+    form = ProveedorForm(instance=proveedor)
+    return render(request, 'Facturacion/editar_proveedor.html', {'form': form, 'proveedor': proveedor})
 
 @login_required
 def eliminar_proveedor(request, id):
@@ -599,15 +636,38 @@ def eliminar_proveedor(request, id):
     messages.success(request, f"Proveedor '{proveedor.nombre}' eliminado correctamente.")
     return redirect('lista_proveedores')
 
-
 # ======================================================
 # 📦 PRODUCTOS E INVENTARIO
 # ======================================================
 
+from django.db.models import Max, Q
+from django.http import JsonResponse
+
 @login_required
 def lista_productos(request):
-    productos = Producto.objects.all()
-    return render(request, 'Facturacion/productos.html', {'productos': productos})
+    query = request.GET.get('q', '')
+    productos = Producto.objects.all().order_by('codigo')
+    if query:
+        productos = productos.filter(
+            Q(codigo__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
+    return render(request, 'Facturacion/productos.html', {
+        'productos': productos,
+        'query': query
+    })
+
+
+def generar_codigo_producto():
+    ultimo = Producto.objects.aggregate(ultimo=Max('codigo'))['ultimo']
+    if ultimo:
+        try:
+            numero = int(ultimo.replace('PRD', '')) + 1
+        except:
+            numero = 1
+    else:
+        numero = 1
+    return f"PRD{numero:04d}"
 
 
 @login_required
@@ -615,28 +675,44 @@ def crear_producto(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST)
         if form.is_valid():
-            codigo = form.cleaned_data['codigo']
-            if Producto.objects.filter(codigo=codigo).exists():
-                return JsonResponse({'error': f"El código '{codigo}' ya existe."}, status=400)
-            
             producto = form.save(commit=False)
+            # Genera código único automáticamente
+            producto.codigo = generar_codigo_producto()
             producto.inventario = 0
             producto.save()
             return JsonResponse({'success': True})
         return JsonResponse({'error': 'Formulario inválido'}, status=400)
     else:
         form = ProductoForm()
-        return render(request, 'Facturacion/form_producto.html', {'form': form})
+        # Autogenera el código en el formulario (solo visual)
+        nuevo_codigo = generar_codigo_producto()
+        return render(request, 'Facturacion/form_producto.html', {
+            'form': form,
+            'nuevo_codigo': nuevo_codigo
+        })
 
 
 @login_required
-def inventario(request):
-    query = request.GET.get('q', '')
-    productos = Producto.objects.all().order_by('codigo')
-    if query:
-        productos = productos.filter(Q(codigo__icontains=query) | Q(descripcion__icontains(query)))
-    return render(request, 'Facturacion/inventario.html', {'productos': productos, 'query': query})
+def editar_producto(request, id):
+    producto = get_object_or_404(Producto, id=id)
 
+    if request.method == 'POST':
+        form = ProductoForm(request.POST, instance=producto)
+        if form.is_valid():
+            # ✅ Asegura que no modifique el código y que no falle por unique
+            producto_editado = form.save(commit=False)
+            producto_editado.codigo = producto.codigo  # mantiene el mismo código
+            producto_editado.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'error': form.errors.as_json()}, status=400)
+
+    # GET → cargar el formulario
+    form = ProductoForm(instance=producto)
+    return render(request, 'Facturacion/editar_producto.html', {
+        'form': form,
+        'producto': producto
+    })
 
 @login_required
 def eliminar_producto(request, id):
@@ -649,6 +725,15 @@ def eliminar_producto(request, id):
 # ======================================================
 # 💰 COMPRAS E INVENTARIO
 # ======================================================
+
+@login_required
+def inventario(request):
+    query = request.GET.get('q', '')
+    productos = Producto.objects.all().order_by('codigo')
+    if query:
+        productos = productos.filter(Q(codigo__icontains=query) | Q(descripcion__icontains(query)))
+    return render(request, 'Facturacion/inventario.html', {'productos': productos, 'query': query})
+
 
 @login_required
 def registrar_compra(request):

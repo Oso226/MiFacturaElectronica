@@ -61,6 +61,7 @@ def crear_perfil_automatico(sender, instance, created, **kwargs):
 class Cliente(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
     nombre = models.CharField(max_length=120)
+    dui = models.CharField(max_length=10, blank=True, null=True) 
     nit = models.CharField(max_length=20)
     nrc = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.TextField()
@@ -80,7 +81,7 @@ class Cliente(models.Model):
 # ======================================================
 class Producto(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20)
     descripcion = models.CharField(max_length=150)
     unidad_medida = models.CharField(max_length=10, default='C/U')
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)

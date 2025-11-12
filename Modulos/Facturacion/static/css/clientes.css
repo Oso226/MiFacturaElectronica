@@ -1,124 +1,103 @@
-/* 🔹 Forzar todo al borde superior */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background-color: #1d7dde;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* ================================
+   CLIENTES.CSS - OMNIGEST
+================================== */
+
+body {
+    background-color: #eaf2ff; /* Fondo suave */
+    font-family: 'Segoe UI', sans-serif;
 }
 
-/* 🔹 Contenedor general */
-.contenedor-clientes {
-  padding-top: 0;
-  margin-top: 0;
-  text-align: center;
+/* ================================ 
+   TÍTULO Y ENCABEZADOS
+================================== */
+.titulo {
+    font-weight: 700;
+    color: #0d1b2a;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
-/* 🔹 Barra superior */
-.barra-superior {
-  background-color: #487fcd;
-  color: white;
-  width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1000;
-  border-bottom: 3px solid #00bcd4;
+.table-encabezado {
+    background-color: #4db6ac; /* verde agua */
+    color: #000;
+    text-align: center;
 }
 
-/* Ajuste para el resto del contenido bajo la barra */
-.table-responsive {
-  margin-top: 100px; /* deja espacio debajo de la barra superior */
+/* ================================ 
+   TABLA
+================================== */
+.table {
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 🔹 Botones */
+.table-hover tbody tr:hover {
+    background-color: #f1f8e9;
+}
+
+/* ================================ 
+   BOTONES
+================================== */
 .btn-agregar {
-  background-color: #91d400;
-  color: white;
-  border: none;
-  transition: 0.3s ease;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    transition: 0.3s;
 }
 .btn-agregar:hover {
-  background-color: #0097a7;
-}
-.btn-secondary {
-  background-color: #6c757d;
-  border: none;
-}
-.btn-secondary:hover {
-  background-color: #5a6268;
+    background-color: #45a049;
 }
 
-/* 🔹 Tabla */
-.table-encabezado th {
-  background-color: #00bcd4;
-  color: #000;
-}
 .btn-editar {
-  background-color: #ffc107;
-  color: #000;
-  border: none;
+    background-color: #ffc107;
+    color: #000;
+    border: none;
 }
 .btn-editar:hover {
-  background-color: #e0a800;
+    background-color: #ffca2c;
 }
+
 .btn-eliminar {
-  background-color: #dc3545;
-  color: white;
-  border: none;
+    background-color: #dc3545;
+    color: white;
+    border: none;
 }
 .btn-eliminar:hover {
-  background-color: #b02a37;
-} 
+    background-color: #c82333;
+}
 
-/* ===== Responsive General ===== */
+/* ================================ 
+   BUSCADOR
+================================== */
+.search-box {
+    position: relative;
+}
+.search-box input {
+    padding-left: 35px;
+    border-radius: 25px;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 4px rgba(0,0,0,0.1);
+}
+.search-box i {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: gray;
+}
 
-/* Móviles pequeños */
-@media (max-width: 576px) {
-  .contenedor-facturacion {
-    padding: 1rem !important;
-  }
-
-  .titulo-principal {
-    font-size: 1.4rem;
-    text-align: center;
-  }
-
-  .btn {
-    font-size: 0.9rem;
+/* ================================ 
+   OVERLAY DECORATIVO
+================================== */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-  }
-
-  img {
-    max-width: 100%;
-    height: auto;
-  }
-
-  .card {
-    margin-bottom: 1rem;
-  }
+    height: 100%;
+    background: linear-gradient(to bottom right, #d0ebff, #f3f7ff);
+    z-index: -1;
 }
 
-/* Tablets */
-@media (min-width: 577px) and (max-width: 992px) {
-  .contenedor-facturacion {
-    padding: 2rem;
-  }
-
-  .titulo-principal {
-    font-size: 1.6rem;
-  }
-
-  .card {
-    margin: 0.5rem;
-  }
-}
-
-/* Escritorio */
-@media (min-width: 993px) {
-  .contenedor-facturacion {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-}
 
