@@ -41,19 +41,34 @@ from .forms import ClienteForm, ProveedorForm, ProductoForm
 from .permisos import rol_requerido
 
 
-
 # ======================================================
-# 🔐 AUTENTICACIÓN
+# 🔐 INICIAR SESIÓN (versión definitiva y segura)
 # ======================================================
-
 def iniciar_sesion(request):
     """
     Inicia sesión de usuario verificando rol y empresa asociada.
-    Si el usuario ya está autenticado, lo redirige a su menú principal.
+    Muestra mensaje post-logout de forma segura.
     """
+
+    # 🟢 Mostrar mensaje si viene desde logout
+    if request.GET.get("logout") == "1":
+        # Evita error si storage aún no existe
+        try:
+            messages.success(request, "Sesión cerrada correctamente.")
+        except Exception:
+            pass
+
+    # 🧹 Limpia mensajes antiguos solo si el middleware está activo
+    if hasattr(request, '_messages'):
+        storage = messages.get_messages(request)
+        for _ in storage:
+            pass  # vacía sin borrar el backend
+
+    # 🔐 Si ya está logueado, ir al menú
     if request.user.is_authenticated:
         return redirect('menu_principal')
 
+    # 🧩 Si envía el formulario de login
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -61,17 +76,13 @@ def iniciar_sesion(request):
 
         if user is not None:
             login(request, user)
-
-            # 🔹 Cargar perfil asociado al usuario
             perfil = Perfil.objects.filter(user=user).select_related('empresa').first()
 
-            # 🔒 Validar si el perfil existe
             if not perfil:
                 logout(request)
                 messages.error(request, "El usuario no tiene un perfil asignado.")
                 return redirect('login')
 
-            # 🔒 Validar si el usuario tiene empresa (multiempresa)
             if not perfil.empresa:
                 messages.warning(request, "No se encontró empresa asignada al usuario.")
             else:
@@ -85,15 +96,17 @@ def iniciar_sesion(request):
     return render(request, 'registration/login.html')
 
 
+# ======================================================
+# 🚪 CERRAR SESIÓN
+# ======================================================
 def cerrar_sesion(request):
     """
-    Cierra la sesión del usuario actual y limpia los datos de sesión.
+    Cierra la sesión y redirige limpiamente al login
+    evitando errores en el sistema de mensajes.
     """
-    if 'empresa_id' in request.session:
-        del request.session['empresa_id']
     logout(request)
-    messages.success(request, "Sesión cerrada correctamente.")
-    return redirect('login')
+    # En lugar de usar messages aquí, mandamos un parámetro en la URL
+    return redirect('/login/?logout=1')
 
 
 def registro(request):
