@@ -10,6 +10,7 @@ import base64
 import uuid
 import tempfile
 import threading
+import openpyxl
 from io import BytesIO  # ✅ agregado correctamente
 
 from decimal import Decimal
@@ -31,6 +32,7 @@ from django.conf import settings
 from django.core.mail import EmailMessage, send_mail
 from openpyxl.styles import Alignment, Font, Border, Side
 from weasyprint import HTML, CSS
+from django.db.models import Max
 
 # Modelos y formularios
 from .models import (
@@ -39,6 +41,9 @@ from .models import (
 )
 from .forms import ClienteForm, ProveedorForm, ProductoForm
 from .permisos import rol_requerido
+from openpyxl.styles import Font, PatternFill, Alignment
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
 
 # ======================================================
@@ -215,8 +220,13 @@ def anular_dte(request, id):
 # 📊 Reporte de ventas
 @rol_requerido(['Administrador', 'Contador'])
 def reporte_ventas(request):
-    dtes = DTE.objects.filter(estado='Activo').order_by('-fecha_emision')
+    """
+    Muestra los últimos 10 comprobantes emitidos, 
+    ordenados del más reciente al más antiguo.
+    """
+    dtes = DTE.objects.filter(estado='Activo').order_by('-fecha_emision')[:10]
     total_general = sum(d.total for d in dtes)
+
     return render(request, 'Facturacion/ventas.html', {
         'dtes': dtes,
         'total': total_general
@@ -305,10 +315,16 @@ def generar_dte(request, tipo):
             "qr_data": None,
         })
 
-        css_path = os.path.join(
-            settings.STATIC_ROOT or os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static'),
-            'css', 'factura01.css'
-        )
+        # ✅ Opción 2: Ruta automática para desarrollo y producción
+        dev_css = os.path.join(settings.BASE_DIR, 'Modulos', 'Facturacion', 'static', 'css', 'factura01.css')
+        prod_css = os.path.join(settings.BASE_DIR, 'staticfiles_dev', 'css', 'factura01.css')
+
+        if os.path.exists(prod_css):
+            css_path = prod_css
+            print(f"📁 Usando CSS de producción: {css_path}")
+        else:
+            css_path = dev_css
+            print(f"📁 Usando CSS local: {css_path}")
 
         pdf_buffer = BytesIO()
         HTML(string=html_content).write_pdf(pdf_buffer, stylesheets=[CSS(filename=css_path)])
@@ -734,23 +750,67 @@ def inventario(request):
         productos = productos.filter(Q(codigo__icontains=query) | Q(descripcion__icontains(query)))
     return render(request, 'Facturacion/inventario.html', {'productos': productos, 'query': query})
 
+def generar_comprobante_unico():
+    """Genera un número único tipo COMP-20251113-0001"""
+    ultimo = Compra.objects.aggregate(max_id=Max('id'))['max_id'] or 0
+    return f"COMP-{now().strftime('%Y%m%d')}-{(ultimo + 1):04d}"
+
+
+def generar_registro_unico():
+    """Genera un número único tipo REG-00001"""
+    ultimo = Compra.objects.aggregate(max_id=Max('id'))['max_id'] or 0
+    return f"REG-{(ultimo + 1):05d}"
+
 
 @login_required
 def registrar_compra(request):
     if request.method == 'POST':
         try:
+            # 🧩 Obtener datos del formulario
             producto_id = request.POST.get('producto')
             cantidad = int(request.POST.get('cantidad'))
             proveedor_id = request.POST.get('proveedor')
+            precio_compra_str = request.POST.get('precio_compra')
 
+            # ⚠️ Validaciones básicas
+            if not producto_id or not proveedor_id:
+                messages.error(request, "⚠️ Debes seleccionar un producto y un proveedor.")
+                return redirect('registrar_compra')
+
+            if not precio_compra_str or Decimal(precio_compra_str) <= 0:
+                messages.error(request, "⚠️ Debes ingresar un precio total de compra válido.")
+                return redirect('registrar_compra')
+
+            # Convertir a Decimal
+            precio_compra = Decimal(precio_compra_str)
+
+            # Buscar producto y proveedor
             producto = Producto.objects.get(id=producto_id)
             proveedor = Proveedor.objects.get(id=proveedor_id)
 
-            subtotal = producto.precio_unitario * Decimal(cantidad)
+            # 🧮 Cálculos (precio_compra = total de la compra)
+            subtotal = precio_compra  # el usuario ya ingresa el total
+            precio_unitario = subtotal / cantidad  # cálculo automático
             iva_13 = subtotal * Decimal('0.13')
             total = subtotal + iva_13
 
-            # Actualiza inventario
+            # Generar comprobantes únicos
+            comprobante_numero = generar_comprobante_unico()
+            registro_nrc = generar_registro_unico()
+
+            # 💾 Guardar la compra
+            Compra.objects.create(
+                fecha=now(),
+                comprobante_numero=comprobante_numero,
+                registro_nrc=registro_nrc,
+                proveedor=proveedor.nombre,
+                precio_unitario=precio_unitario,
+                compras_gravadas=subtotal,
+                iva_13=iva_13,
+                total=total
+            )
+
+            # 📦 Registrar movimiento de inventario
             Inventario.objects.create(
                 producto=producto,
                 tipo='Entrada',
@@ -758,17 +818,12 @@ def registrar_compra(request):
                 descripcion=f"Compra registrada de {proveedor.nombre}"
             )
 
-            Compra.objects.create(
-                fecha=now(),
-                comprobante_numero=f"COMP-{now().strftime('%Y%m%d%H%M%S')}",
-                registro_nrc=proveedor.nrc or "N/A",
-                proveedor=proveedor.nombre,
-                compras_gravadas=subtotal,
-                iva_13=iva_13,
-                total=total
-            )
+            # 🧰 Actualizar el precio del producto (solo si cambia)
+            if producto.precio_unitario != precio_unitario:
+                producto.precio_unitario = precio_unitario
+                producto.save()
 
-            from .models import Empresa, Cliente
+            # 🧾 Crear DTE vinculado
             empresa = Empresa.objects.first()
             cliente = Cliente.objects.first()
             if empresa and cliente:
@@ -776,7 +831,7 @@ def registrar_compra(request):
                     empresa=empresa,
                     cliente=cliente,
                     tipo_dte='03',
-                    numero_control=f"COMP-{now().strftime('%Y%m%d%H%M%S')}",
+                    numero_control=comprobante_numero,
                     subtotal=subtotal,
                     iva=iva_13,
                     total=total,
@@ -785,29 +840,21 @@ def registrar_compra(request):
                     fecha_emision=now()
                 )
 
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': f"Compra registrada correctamente. Se añadieron {cantidad} unidades al inventario de '{producto.descripcion}'."
-                })
-
-            messages.success(request, "✅ Compra registrada correctamente.")
-            return redirect('inventario')
+            messages.success(request, f"✅ Compra registrada correctamente: {cantidad} unidades por ${subtotal} (Precio unitario ${precio_unitario:.2f})")
+            return redirect('libro_compras')
 
         except Exception as e:
-            error_msg = f"Ocurrió un error al registrar la compra: {str(e)}"
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'error': error_msg})
-            messages.error(request, error_msg)
-            return redirect('inventario')
+            messages.error(request, f"❌ Error al registrar la compra: {str(e)}")
+            return redirect('registrar_compra')
 
+    # 🔽 Mostrar formulario
     productos = Producto.objects.all().order_by('descripcion')
     proveedores = Proveedor.objects.all().order_by('nombre')
+
     return render(request, 'Facturacion/form_compra.html', {
         'productos': productos,
         'proveedores': proveedores
     })
-
 
 # ======================================================
 # 📘 LIBRO DE COMPRAS
@@ -815,61 +862,181 @@ def registrar_compra(request):
 
 @login_required
 def libro_compras(request):
-    dtes = DTE.objects.filter(tipo_dte='03', estado='Activo').order_by('-fecha_emision')
-    compras_dte = []
-    for dte in dtes:
-        proveedor = (
-            dte.codigo_generacion.replace("Compra a proveedor: ", "")
-            if dte.codigo_generacion and "Compra a proveedor:" in dte.codigo_generacion
-            else (dte.cliente.nombre if hasattr(dte.cliente, "nombre") else "N/A")
-        )
-        compras_dte.append({
-            "fecha": dte.fecha_emision.strftime("%d/%m/%Y"),
-            "comprobante": dte.numero_control,
-            "registro": dte.empresa.nrc if hasattr(dte.empresa, "nrc") else "—",
-            "proveedor": proveedor,
-            "gravadas": float(dte.subtotal),
-            "iva": float(dte.iva),
-            "total": float(dte.total),
-        })
+    query = request.GET.get('q', '').strip()
 
-    compras_extra = [
+    compras_qs = Compra.objects.all().order_by('-fecha', '-id')
+
+    if query:
+        compras_qs = compras_qs.filter(
+            Q(comprobante_numero__icontains=query) |
+            Q(registro_nrc__icontains=query)
+        )
+
+    # Mostrar solo las últimas 10
+    compras_qs = compras_qs[:10]
+
+    compras = [
         {
             "fecha": c.fecha.strftime("%d/%m/%Y"),
             "comprobante": c.comprobante_numero,
             "registro": c.registro_nrc,
             "proveedor": c.proveedor,
+            "precio_unitario": float(c.precio_unitario),
             "gravadas": float(c.compras_gravadas),
             "iva": float(c.iva_13),
             "total": float(c.total),
         }
+        for c in compras_qs
+    ]
+
+    return render(request, 'Facturacion/libro_compras.html', {
+        'compras': compras,
+        'query': query
+    })
+
+@login_required
+def exportar_libro_compras_excel(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from django.http import HttpResponse
+    from decimal import Decimal
+
+    # 📘 Obtener los datos igual que en la vista libro_compras
+    compras = [
+        {
+            "fecha": c.fecha.strftime("%d/%m/%Y"),
+            "comprobante": c.comprobante_numero,
+            "registro": c.registro_nrc,
+            "proveedor": c.proveedor,
+            "precio_unitario": float(c.precio_unitario) if hasattr(c, "precio_unitario") else 0.0,
+            "gravadas": float(c.compras_gravadas),
+        }
         for c in Compra.objects.all().order_by('-fecha')
     ]
 
-    compras = compras_dte + compras_extra
+    # 📗 Crear archivo Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Libro de Compras"
 
-    return render(request, 'Facturacion/libro_compras.html', {'compras': compras})
+    # Encabezados
+    encabezados = [
+        "N°", "Fecha", "Comprobante N°", "Registro N°", "Proveedor",
+        "Precio Unitario", "Compras Gravadas", "IVA 13%", "Total"
+    ]
+    ws.append(encabezados)
+
+    # 🟦 Estilos de encabezado
+    header_font = Font(bold=True, color="000000")
+    header_fill = PatternFill(start_color="B7DEE8", end_color="B7DEE8", fill_type="solid")
+    center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_alignment
+
+    # 🧱 Borde de celdas
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    # 🧮 Agregar filas de datos
+    for i, compra in enumerate(compras, start=2):
+        fila = [
+            i - 1,
+            compra["fecha"],
+            compra["comprobante"],
+            compra["registro"],
+            compra["proveedor"],
+            compra["precio_unitario"],
+            compra["gravadas"],
+            f"=G{i}*0.13",   # IVA 13% (columna G)
+            f"=G{i}+H{i}"    # Total = Gravadas + IVA
+        ]
+        ws.append(fila)
+
+    # 🔲 Aplicar bordes y alineación a todas las celdas
+    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+        for cell in row:
+            cell.border = thin_border
+            cell.alignment = center_alignment
+
+    # 📏 Ajustar ancho de columnas automáticamente
+    for col in ws.columns:
+        max_length = 0
+        column = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except:
+                pass
+        ws.column_dimensions[column].width = max_length + 2
+
+    # 💾 Preparar respuesta HTTP
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="Libro_Compras.xlsx"'
+    wb.save(response)
+    return response
+
 
 
 # ======================================================
-# 📗 LIBRO DE VENTAS
+# 📗 LIBRO DE VENTAS (ajustado a zona horaria local)
 # ======================================================
 
 @login_required
 def libro_ventas(request):
-    dtes = DTE.objects.filter(tipo_dte='01', estado='Activo')
+    """
+    Genera el libro de ventas agrupado por día (zona horaria local),
+    mostrando los 10 días más recientes.
+    """
+    from collections import defaultdict
+    from django.utils.timezone import localtime
+    from datetime import datetime
 
+    dtes = DTE.objects.filter(tipo_dte='01', estado='Activo').order_by('fecha_emision')
+
+    ventas_por_dia = defaultdict(lambda: {'ventas_gravadas': 0, 'total': 0, 'emitido_del': None, 'emitido_al': None})
+
+    for dte in dtes:
+        # 🔹 Convierte a hora local antes de agrupar
+        fecha_local = localtime(dte.fecha_emision)
+        dia = fecha_local.strftime("%d/%m/%Y")
+
+        ventas_por_dia[dia]['ventas_gravadas'] += float(dte.subtotal)
+        ventas_por_dia[dia]['total'] += float(dte.total)
+
+        if not ventas_por_dia[dia]['emitido_del']:
+            ventas_por_dia[dia]['emitido_del'] = dte.numero_control
+        ventas_por_dia[dia]['emitido_al'] = dte.numero_control
+
+    # Convertir a lista y ordenar por fecha descendente
     ventas = [
         {
-            "fecha": dte.fecha_emision.strftime("%d/%m/%Y"),
-            "numero": dte.numero_control,
-            "cliente": dte.cliente.nombre,
-            "subtotal": float(dte.subtotal),
-            "iva": float(dte.iva),
-            "total": float(dte.total),
+            'dia': dia,
+            'emitido_del': data['emitido_del'],
+            'emitido_al': data['emitido_al'],
+            'ventas_gravadas': round(data['ventas_gravadas'], 2),
+            'total': round(data['total'], 2),
         }
-        for dte in dtes
+        for dia, data in ventas_por_dia.items()
     ]
+
+    # 🧭 Ordenar de más reciente a más antigua
+    ventas.sort(key=lambda x: datetime.strptime(x['dia'], "%d/%m/%Y"), reverse=True)
+
+    # Mostrar solo las últimas 10
+    ventas = ventas[:10]
+
+    print(f"📘 DTE encontrados: {len(dtes)}, días únicos: {len(ventas)}")  # para depurar
 
     return render(request, 'Facturacion/libro_ventas.html', {'ventas': ventas})
 
@@ -880,8 +1047,27 @@ def libro_ventas(request):
 
 @rol_requerido(['Administrador'])
 def lista_usuarios(request):
-    usuarios = User.objects.all().select_related('perfil')
+    usuarios = User.objects.all().select_related('perfil').order_by('-date_joined')[:10]
     return render(request, 'Facturacion/usuarios.html', {'usuarios': usuarios})
+
+@rol_requerido(['Administrador'])
+def editar_usuario(request, user_id):
+    usuario = get_object_or_404(User, id=user_id)
+    if request.method == "POST":
+        usuario.username = request.POST.get("username")
+        usuario.email = request.POST.get("email")
+        usuario.save()
+        messages.success(request, "Usuario actualizado correctamente.")
+        return redirect('lista_usuarios')
+    return render(request, 'Facturacion/editar_usuario.html', {'usuario': usuario})
+
+
+@rol_requerido(['Administrador'])
+def eliminar_usuario(request, user_id):
+    usuario = get_object_or_404(User, id=user_id)
+    usuario.delete()
+    messages.success(request, "Usuario eliminado correctamente.")
+    return redirect('lista_usuarios')
 
 def _generar_numero_control(tipo):
     """Genera un número de control ficticio único."""
@@ -1195,167 +1381,100 @@ def catalogo_productos(request):
         'clientes': clientes
     })
 
+@login_required
 def registrar_venta(request):
     if request.method == "POST":
         try:
-            producto_id = int(request.POST.get('producto_id'))
-            cantidad = int(request.POST.get('cantidad'))
+            producto_id = request.POST.get('producto_id')
+            cantidad = request.POST.get('cantidad')
+            cliente_id = request.POST.get('cliente_id')
+            nuevo_cliente = request.POST.get('nuevo_cliente')
+            correo = request.POST.get('correo')
+            direccion = request.POST.get('direccion')
 
-            producto = get_object_or_404(Producto, id=producto_id)
+            print("🧩 Datos recibidos:", producto_id, cantidad, cliente_id, nuevo_cliente)
 
-            # Validar stock
+            if not producto_id or not cantidad:
+                return JsonResponse({'status': 'error', 'mensaje': 'Faltan datos del producto o cantidad.'}, status=400)
+
+            producto = get_object_or_404(Producto, id=int(producto_id))
+            cantidad = int(cantidad)
+
+            # 🧾 Buscar o crear cliente
+            if cliente_id:
+                cliente = get_object_or_404(Cliente, id=int(cliente_id))
+            elif nuevo_cliente:
+                cliente = Cliente.objects.create(
+                    nombre=nuevo_cliente,
+                    correo=correo or "sin_correo@omnigest.com",
+                    direccion=direccion or "Sin dirección"
+                )
+                print(f"👤 Nuevo cliente creado: {cliente.nombre}")
+            else:
+                cliente, _ = Cliente.objects.get_or_create(
+                    nombre="Consumidor Final",
+                    defaults={"correo": "consumidor@omnigest.com"}
+                )
+
+            # ⚙️ Empresa por defecto
+            empresa = Empresa.objects.first()
+            if not empresa:
+                empresa = Empresa.objects.create(
+                    nombre="OMNIGEST S.A. de C.V.",
+                    nit="0614-000000-001-0",
+                    nrc="000000-0",
+                    direccion="San Salvador",
+                    telefono="2222-1111",
+                    correo="info@omnigest.com"
+                )
+
+            # ⚠️ Validar stock
             if producto.inventario < cantidad:
                 return JsonResponse({'status': 'error', 'mensaje': 'Stock insuficiente'}, status=400)
 
-            # Descontar inventario
+            # 🧮 Cálculos
+            subtotal = producto.precio_unitario * Decimal(cantidad)
+            iva = subtotal * Decimal('0.13')
+            total = subtotal + iva
+
+            # 📦 Descontar inventario (una sola vez)
             producto.inventario -= cantidad
             producto.save()
 
-            return JsonResponse({'status': 'ok', 'nuevo_stock': producto.inventario})
+            # 🧾 Crear DTE
+            dte = DTE.objects.create(
+                empresa=empresa,
+                cliente=cliente,
+                tipo_dte='01',
+                numero_control=f"DTE-01-{now().strftime('%Y%m%d%H%M%S')}",
+                subtotal=subtotal,
+                iva=iva,
+                total=total,
+                codigo_generacion=f"VENTA-{now().strftime('%H%M%S')}",
+                estado='Activo',
+                fecha_emision=now()
+            )
+
+            # 📦 Registrar movimiento de inventario
+            Inventario.objects.create(
+                producto=producto,
+                tipo='Salida',
+                cantidad=cantidad,
+                descripcion=f"Venta a {cliente.nombre}"
+            )
+
+            return JsonResponse({
+                "status": "ok",
+                "msg": f"✅ Venta registrada exitosamente para {cliente.nombre}.",
+                "nuevo_stock": producto.inventario
+            })
+
         except Exception as e:
+            print("❌ Error en registrar_venta:", e)
             return JsonResponse({'status': 'error', 'mensaje': str(e)}, status=500)
 
     return JsonResponse({'status': 'error', 'mensaje': 'Método no permitido'}, status=405)
 
-def enviar_correo_async(email):
-    """Envía el correo en un hilo separado para evitar timeout en Render."""
-    try:
-        print("🚀 Intentando enviar correo a:", email.to)
-        email.send(fail_silently=False)
-        print("✅ Correo enviado correctamente (modo async).")
-    except Exception as e:
-        print(f"❌ Error al enviar correo async: {e}")
 
-def enviar_correo(request):
-    """Envía el comprobante de venta al correo del cliente con PDF y JSON adjuntos."""
-    if request.method == "POST":
-        try:
-            # 📦 Obtener datos enviados desde el frontend
-            data = json.loads(request.body)
 
-            correo = data.get("correo")
-            cliente_nombre = data.get("cliente")
-            producto = data.get("producto")
-            cantidad = data.get("cantidad")
-            precio_unitario = float(data.get("precio_unitario", 0))
-            subtotal = float(data.get("subtotal", 0))
-            iva = float(data.get("iva", 0))
-            total = float(data.get("total", 0))
-            tipo_dte = data.get("tipo_dte", "01")
-
-            # 🧩 Intentar obtener el cliente real desde la BD (si se envía ID o nombre)
-            cliente_obj = None
-            if isinstance(cliente_nombre, int) or str(cliente_nombre).isdigit():
-                cliente_obj = Cliente.objects.filter(id=int(cliente_nombre)).first()
-            elif isinstance(cliente_nombre, str):
-                cliente_obj = Cliente.objects.filter(nombre__iexact=cliente_nombre.strip()).first()
-
-            if cliente_obj:
-                cliente_nombre = cliente_obj.nombre
-                correo = cliente_obj.correo or correo or "cliente@ejemplo.com"
-
-            if not correo:
-                return JsonResponse({"status": "error", "msg": "Correo no proporcionado"})
-
-            # 🏢 Obtener datos de la empresa (si existe)
-            empresa = Empresa.objects.first()
-
-            # ✅ Crear contexto para la plantilla
-            contexto = {
-                "empresa": {
-                    "nombre": empresa.nombre if empresa else "Omnigest S.A. de C.V.",
-                    "nit": empresa.nit if empresa else "0623-123456-1-9",
-                    "nrc": empresa.nrc if empresa else "000000-0",
-                    "direccion": empresa.direccion if empresa else "San Salvador Centro frente a Salvador del Mundo",
-                    "telefono": empresa.telefono if empresa else "2290-9444",
-                    "correo": empresa.correo if empresa else "info@omnigest.com",
-                    "sucursal": "Sucursal Salvador del Mundo",
-                },
-                "cliente": {
-                    "nombre": cliente_nombre,
-                    "direccion": cliente_obj.direccion if cliente_obj else "Ahuachapán",
-                    "nit": cliente_obj.nit if cliente_obj else "0101-231288-103-0",
-                    "correo": correo,
-                },
-                "dte": {
-                    "tipo": tipo_dte,
-                    "numero_control": f"DTE-{tipo_dte}-{datetime.now().strftime('%H%M%S')}",
-                    "fecha_emision": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "condicion": "Contado",
-                    "caja": "101",
-                    "tipo_venta": "CONTADO",
-                    "vendedor": "Sucursal Salvador del Mundo",
-                },
-                "detalle": [
-                    {
-                        "codigo": "P001",
-                        "descripcion": producto,
-                        "cantidad": cantidad,
-                        "precio_unitario": precio_unitario,
-                        "total_item": subtotal,
-                    }
-                ],
-                "totales": {
-                    "subtotal": subtotal,
-                    "iva": iva,
-                    "total": total,
-                },
-                "notas": "Gracias por su compra. Conserve este comprobante como respaldo de su operación.",
-                "en_letras": f"{total:.2f} dólares",
-            }
-
-            # ✅ Renderizar HTML de la factura
-            html_string = render_to_string("Facturacion/factura01.html", contexto)
-
-            # ✅ Generar PDF temporal
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as pdf_temp:
-                HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(pdf_temp.name)
-                pdf_temp.seek(0)
-                pdf_bytes = pdf_temp.read()
-
-            # ✅ Crear JSON estructurado
-            json_bytes = json.dumps(contexto, indent=4, ensure_ascii=False).encode("utf-8")
-
-            # ✅ Renderizar cuerpo del correo (HTML)
-            html_content = render_to_string("Facturacion/email_comprobante.html", {
-                "cliente": cliente_nombre,
-                "producto": producto,
-                "total": total,
-                "tipo_dte": dict(DTE.TIPO_DTE_CHOICES).get(tipo_dte, "Factura")
-            })
-
-            # ✅ Asunto del correo
-            asunto = f"📄 Comprobante Electrónico ({dict(DTE.TIPO_DTE_CHOICES).get(tipo_dte, 'Factura')}) - {cliente_nombre}"
-
-            # ✅ Crear correo
-            email = EmailMessage(
-                subject=asunto,
-                body=html_content,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[correo],
-            )
-            email.content_subtype = "html"
-
-            # ✅ Adjuntar PDF y JSON
-            email.attach(f"Comprobante_{cliente_nombre}.pdf", pdf_bytes, "application/pdf")
-            email.attach(f"Comprobante_{cliente_nombre}.json", json_bytes, "application/json")
-
-            # ✅ Enviar correo en hilo separado (evita timeout en Render)
-            threading.Thread(target=enviar_correo_async, args=(email,)).start()
-
-            # ✅ Eliminar archivo temporal
-            os.remove(pdf_temp.name)
-
-            # ✅ Responder inmediatamente al cliente
-            return JsonResponse({
-                "status": "ok",
-                "msg": f"El comprobante está siendo enviado a {correo}."
-            })
-
-        except Exception as e:
-            print(f"❌ Error al enviar correo: {e}")
-            return JsonResponse({"status": "error", "msg": str(e)})
-
-    # Si no es método POST
-    return JsonResponse({"status": "error", "msg": "Método no permitido"})
 

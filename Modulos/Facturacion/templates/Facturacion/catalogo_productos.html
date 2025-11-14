@@ -188,8 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       body: new URLSearchParams({
         'producto_id': productoSeleccionado.id,
-        'cantidad': productoSeleccionado.cantidad
+        'cantidad': productoSeleccionado.cantidad,
+        'cliente_id': clienteExistente || '',
+        'nuevo_cliente': nuevoCliente || '',
+        'correo': correoCliente || '',
+        'direccion': document.getElementById('direccionCliente').value.trim()
       })
+
     })
     .then(res => res.json())
     .then(data => {

@@ -10,16 +10,23 @@
 <body class="bg-light">
 <div class="container mt-5">
     <h2 class="text-center mb-4">📘 Libro de Compras</h2>
+    <form method="get" class="d-flex mb-3" style="max-width: 400px;">
+        <input type="text" name="q" class="form-control" placeholder="Buscar por comprobante o registro" value="{{ query|default:'' }}">
+        <button class="btn btn-primary ms-2">Buscar</button>
+    </form>
+
     <div class="d-flex justify-content-between mb-3">
         <a href="{% url 'menu_catalogos' %}" class="btn btn-secondary">← Volver</a>
-        <a href="?exportar=1" class="btn btn-success">⬇ Exportar a Excel</a>
+        <a href="{% url 'exportar_libro_compras_excel' %}" class="btn btn-success">
+            ⬇️ Exportar a Excel
+        </a>
     </div>
 
     <table class="table table-bordered table-striped">
         <thead class="table-dark text-center">
             <tr>
                 <th>N°</th><th>Fecha</th><th>Comprobante N°</th><th>Registro N°</th>
-                <th>Proveedor</th><th>Compras Gravadas</th><th>IVA 1%</th><th>IVA 13%</th><th>Total</th>
+                <th>Proveedor</th><th>Precio Unitario</th><th>Compras Gravadas</th><th>IVA 1%</th><th>IVA 13%</th><th>Total</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +37,7 @@
                 <td>{{ c.comprobante }}</td>
                 <td>{{ c.registro }}</td>
                 <td>{{ c.proveedor }}</td>
+                <td>${{ c.precio_unitario }}</td>
                 <td>${{ c.gravadas }}</td>
                 <td>$0.00</td>
                 <td>${{ c.iva }}</td>

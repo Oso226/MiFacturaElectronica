@@ -219,6 +219,7 @@ class Compra(models.Model):
     comprobante_numero = models.CharField(max_length=50)
     registro_nrc = models.CharField(max_length=20)
     proveedor = models.CharField(max_length=150)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))  # ✅ nuevo campo
     compras_gravadas = models.DecimalField(max_digits=10, decimal_places=2)
     iva_1 = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     iva_13 = models.DecimalField(max_digits=10, decimal_places=2)

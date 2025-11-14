@@ -55,6 +55,7 @@ urlpatterns = [
     path('catalogo/', views.catalogo_productos, name='catalogo_productos'),
     path('registrar_venta/', views.registrar_venta, name='registrar_venta'),
 
+
     # ======================================================
     # 🧾 FACTURACIÓN ELECTRÓNICA (DTE)
     # ======================================================
@@ -79,21 +80,20 @@ urlpatterns = [
     path('dte/anular/<int:id>/', anular_dte, name='anular_dte'),
 
     # ======================================================
-    # 📬 ENVÍO DE CORREOS
-    # ======================================================
-    path('enviar-correo/', views.enviar_correo, name='enviar_correo'),
-
-    # ======================================================
     # 📘 LIBROS Y REPORTES
     # ======================================================
     path('libros/compras/', views.libro_compras, name='libro_compras'),
     path('libros/ventas/', views.libro_ventas, name='libro_ventas'),
     path('reportes/ventas/', reporte_ventas, name='reporte_ventas'),
+    path('libros/compras/exportar/', views.exportar_libro_compras_excel, name='exportar_libro_compras_excel'),
 
     # ======================================================
     # ⚙️ ADMINISTRACIÓN
     # ======================================================
-    path('usuarios/', views.lista_usuarios, name='usuarios'),
+    path('usuarios/', views.lista_usuarios, name='lista_usuarios'),
+    path('usuarios/editar/<int:user_id>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/eliminar/<int:user_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+
 
     # ======================================================
     # 🔑 VALIDACIONES (AJAX / MODALES)

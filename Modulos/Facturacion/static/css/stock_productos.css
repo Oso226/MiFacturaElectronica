@@ -3,6 +3,7 @@ body {
   background: linear-gradient(to bottom right, #e8f3fc, #c9e6ff);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   min-height: 100vh;
+  margin: 0;
   display: flex;
   flex-direction: column;
 }
@@ -12,7 +13,8 @@ body {
   background-color: #ffffffcc;
   border-radius: 15px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  padding: 25px;
+  padding: 15px 20px;
+  max-width: 95%;
 }
 
 /* Título principal */
@@ -20,37 +22,52 @@ h2 {
   color: #0077c2;
   font-weight: 700;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
 }
 
 /* ======== Tarjetas de producto ======== */
 .card {
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.3s ease-in-out;
+  height: 100%;
+  max-width: 230px; /* 🔹 Tarjeta más compacta */
+  margin: auto;
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .card img {
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  height: 140px; /* 🔹 Imagen más pequeña */
+  object-fit: cover;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.card-body {
+  padding: 10px;
 }
 
 .card-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 5px;
 }
 
 .card-footer {
   border-top: 1px solid #f0f0f043;
+  padding: 8px;
 }
 
-/* Botones */
+/* ======== Botones ======== */
 .btn-outline-primary {
   border-color: #0077c2;
   color: #0077c2;
   font-weight: 600;
+  font-size: 0.9rem;
+  padding: 5px 0;
 }
 
 .btn-outline-primary:hover {
@@ -84,83 +101,56 @@ footer {
   background-color: #004c91;
   color: #75aded;
   text-align: center;
-  padding: 15px 10px;
+  padding: 10px;
   margin-top: auto;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   border-top: 4px solid #0077c2;
 }
 
-footer a {
-  color: #5a83b3;
-  text-decoration: none;
-  margin: 0 10px;
-  font-weight: 500;
-}
-
-footer a:hover {
-  color: #ffdd57;
-}
-
-/* Iconos del pie */
 footer i {
   margin-right: 6px;
 }
 
-/* Responsive */
+/* ======== Distribución de tarjetas ======== */
+.row.g-4 {
+  row-gap: 1rem !important;
+  justify-content: center;
+}
+
+.col-md-4.col-lg-3 {
+  flex: 0 0 20%;
+  max-width: 20%; /* 🔹 5 tarjetas por fila en pantallas grandes */
+}
+
+@media (max-width: 1200px) {
+  .col-md-4.col-lg-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+}
+
+@media (max-width: 992px) {
+  .col-md-4.col-lg-3 {
+    flex: 0 0 33.33%;
+    max-width: 33.33%;
+  }
+}
+
 @media (max-width: 768px) {
-  .card img {
-    height: 150px;
+  .col-md-4.col-lg-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
   }
 }
 
-/* ===== Responsive General ===== */
-
-/* Móviles pequeños */
 @media (max-width: 576px) {
-  .contenedor-facturacion {
-    padding: 1rem !important;
-  }
-
-  .titulo-principal {
-    font-size: 1.4rem;
-    text-align: center;
-  }
-
-  .btn {
-    font-size: 0.9rem;
-    width: 100%;
-  }
-
-  img {
+  .col-md-4.col-lg-3 {
+    flex: 0 0 100%;
     max-width: 100%;
-    height: auto;
   }
 
-  .card {
-    margin-bottom: 1rem;
-  }
-}
-
-/* Tablets */
-@media (min-width: 577px) and (max-width: 992px) {
-  .contenedor-facturacion {
-    padding: 2rem;
-  }
-
-  .titulo-principal {
-    font-size: 1.6rem;
-  }
-
-  .card {
-    margin: 0.5rem;
-  }
-}
-
-/* Escritorio */
-@media (min-width: 993px) {
-  .contenedor-facturacion {
-    max-width: 1100px;
-    margin: 0 auto;
+  .card img {
+    height: 120px;
   }
 }
 
