@@ -1438,8 +1438,8 @@ def registrar_venta(request):
             total = subtotal + iva
 
             # 📦 Descontar inventario (una sola vez)
-            producto.inventario -= cantidad
-            producto.save()
+            #producto.inventario -= cantidad
+            #producto.save()
 
             # 🧾 Crear DTE
             dte = DTE.objects.create(
